@@ -1,0 +1,34 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Output
+bin/
+/tmp/
+
+# Go build cache
+/build/
+
+# Go workspace
+/go.work
+/go.work.sum
+
+# Logs
+*.log
+
+# Env files
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE/editor
+.vscode/
+.idea/
+*.swp
