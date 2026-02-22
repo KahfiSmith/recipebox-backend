@@ -21,7 +21,7 @@ RecipeBox Backend menyediakan API untuk:
 - Language: Go
 - HTTP Router: chi
 - Database: PostgreSQL
-- ORM/Query: database/sql + sqlc (opsional)
+- ORM/Query: GORM
 - Migration: golang-migrate
 - Config: environment variables (.env)
 - API Style: REST JSON

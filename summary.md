@@ -20,6 +20,8 @@ frontend.
   - register/login/refresh/logout/me
   - JWT access token
   - refresh token rotation (token disimpan dalam hash)
+- Data access layer sudah distandarkan ke GORM untuk seluruh module
+  (`auth`, `recipes`, `mealplan`, `shopping`) dengan pola constructor repo/service/handler.
 - OpenAPI sudah memuat endpoint recipes dan auth.
 - Migrasi auth tables sudah tersedia di `migrations/`.
 
