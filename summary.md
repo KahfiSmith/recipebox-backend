@@ -10,15 +10,18 @@ resep berdasarkan bahan, pembuatan shopping list otomatis, dan penyusunan
 meal plan (harian/mingguan). Backend dirancang API-first dan terpisah dari
 frontend.
 
-## Status Saat Ini (Scaffold)
+## Status Saat Ini
 
-- Entry point `cmd/api/main.go` hanya melakukan log bootstrap.
-- Struktur layer telah disiapkan di `internal/` (handler/service/repo) untuk
-  domain recipes, mealplan, shopping, tetapi belum ada implementasi.
-- Transport HTTP dan infrastruktur (server, router, middleware, db) masih
-  placeholder.
-- OpenAPI `api/openapi.yaml` ada, tetapi `paths` masih kosong.
-- Belum ada dependency di `go.mod`, migrasi dan scripts masih kosong.
+- Entry point `cmd/api/main.go` sudah melakukan bootstrap config, koneksi DB,
+  start server, dan graceful shutdown.
+- Infrastruktur HTTP sudah aktif (`chi` router, middleware, timeout, health
+  endpoint).
+- Modul auth sudah diimplementasikan:
+  - register/login/refresh/logout/me
+  - JWT access token
+  - refresh token rotation (token disimpan dalam hash)
+- OpenAPI sudah memuat endpoint recipes dan auth.
+- Migrasi auth tables sudah tersedia di `migrations/`.
 
 ## Struktur Proyek Inti
 
@@ -49,12 +52,10 @@ File contoh `configs/.env.example`:
 
 ## Rencana Pengembangan (High-Level)
 
-- Implementasi wiring server (config loader, db, router, middleware).
-- Definisi kontrak API pada OpenAPI (CRUD recipes, search, shopping list,
-  meal plan).
-- Implementasi layer handler/service/repo untuk setiap domain.
-- Penambahan migrasi schema database.
-- Penambahan dependency (router, pg driver, migrate).
+- Implementasi CRUD recipes + relasi ingredients.
+- Implementasi shopping list generation.
+- Implementasi meal plan harian/mingguan.
+- Tambah observability (structured logging + metrics).
 
 ## Catatan
 

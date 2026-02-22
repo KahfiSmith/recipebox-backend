@@ -14,6 +14,7 @@ RecipeBox Backend menyediakan API untuk:
 - Pencarian resep berdasarkan bahan yang tersedia
 - Generate shopping list dari resep terpilih
 - Manajemen meal plan (kalender harian atau mingguan)
+- Autentikasi user (register, login, refresh token, logout, profile)
 
 ## Tech Stack
 
@@ -84,4 +85,29 @@ RecipeBox Backend menyediakan API untuk:
 
 ```bash
 go run ./cmd/api
+```
+
+## Endpoint Auth
+
+- `POST /api/v1/auth/register`
+- `POST /api/v1/auth/login`
+- `POST /api/v1/auth/refresh`
+- `POST /api/v1/auth/logout`
+- `GET /api/v1/auth/me` (Bearer access token)
+
+Contoh base URL untuk frontend:
+
+- `http://localhost:8080/api/v1`
+
+## Menjalankan Redis (Docker Compose)
+
+```bash
+docker compose up -d redis
+docker compose ps
+```
+
+Untuk berhenti:
+
+```bash
+docker compose down
 ```

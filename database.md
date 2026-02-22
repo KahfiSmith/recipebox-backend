@@ -113,9 +113,35 @@ Index:
 - `shopping_list_items_shopping_list_id_idx` on (`shopping_list_id`)
 - unique `shopping_list_items_uq` on (`shopping_list_id`, `ingredient_id`, `unit`)
 
+## Autentikasi
+
+### users
+
+- `id` bigserial PK
+- `email` text not null unique
+- `password_hash` text not null
+- `created_at` timestamptz not null default now()
+- `updated_at` timestamptz not null default now()
+
+### refresh_tokens
+
+- `id` bigserial PK
+- `user_id` bigint not null references users(id) on delete cascade
+- `token_hash` char(64) not null unique
+- `expires_at` timestamptz not null
+- `user_agent` text null
+- `ip_address` inet null
+- `revoked_at` timestamptz null
+- `replaced_by_token_hash` char(64) null
+- `created_at` timestamptz not null default now()
+
+Index:
+- `idx_refresh_tokens_user_id` on (`user_id`)
+- `idx_refresh_tokens_expires_at` on (`expires_at`)
+
 ## Catatan Implementasi
 
 - Jika butuh pencarian resep berbasis bahan, gunakan join ke
   `recipe_ingredients` dan `ingredients`.
-- Untuk multi-user di fase berikutnya, tambahkan tabel `users` dan field
-  `user_id` pada tabel yang relevan (recipes, meal_plans, shopping_lists).
+- Untuk multi-user data domain (recipes, meal_plans, shopping_lists),
+  tambahkan `user_id` agar data ownership lebih jelas.
