@@ -20,8 +20,8 @@ frontend.
   - register/login/refresh/logout/me
   - JWT access token
   - refresh token rotation (token disimpan dalam hash)
-- Data access layer sudah distandarkan ke GORM untuk seluruh module
-  (`auth`, `recipes`, `mealplan`, `shopping`) dengan pola constructor repo/service/handler.
+- Data access layer auth sudah distandarkan ke GORM dengan pemisahan layer
+  `controller`, `service`, `repository`, `entity`, dan `dto`.
 - OpenAPI sudah memuat endpoint recipes dan auth.
 - Migrasi auth tables sudah tersedia di `migrations/`.
 
@@ -29,16 +29,24 @@ frontend.
 
 - `cmd/api`:
   entrypoint aplikasi.
-- `internal/app`:
-  wiring server dan dependency.
 - `internal/config`:
   definisi konfigurasi aplikasi.
 - `internal/db`:
   koneksi database (Postgres).
-- `internal/transport/http`:
-  router, middleware, response.
-- `internal/recipes`, `internal/mealplan`, `internal/shopping`:
-  domain modules.
+- `internal/server`:
+  bootstrap router dan HTTP server.
+- `internal/controller`:
+  HTTP handlers.
+- `internal/routes`:
+  registrasi route per fitur.
+- `internal/entity`, `internal/dto`:
+  model domain dan payload API.
+- `internal/repository`:
+  akses data (interface + implementasi GORM).
+- `internal/service`:
+  business logic.
+- `internal/middleware`, `internal/utils`:
+  middleware dan helper lintas modul.
 - `api/openapi.yaml`:
   kontrak API (draft).
 - `configs/.env.example`:

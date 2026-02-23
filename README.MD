@@ -4,8 +4,6 @@ Backend REST API untuk RecipeBox, aplikasi web untuk mengelola resep, mencari re
 
 Backend ini dirancang API-first agar mudah diintegrasikan dengan frontend terpisah.
 
-Fase awal backend tanpa autentikasi. Auth dan multi-user akan ditambahkan pada tahap berikutnya.
-
 ## Gambaran Umum
 
 RecipeBox Backend menyediakan API untuk:
@@ -39,32 +37,31 @@ RecipeBox Backend menyediakan API untuk:
 ├── configs/                 # contoh konfigurasi
 │   └── .env.example
 ├── internal/
-│   ├── app/                 # wiring server dan dependency
-│   │   └── server.go
-│   ├── config/              # load env dan config
+│   ├── config/                # load env dan config
 │   │   └── config.go
-│   ├── db/                  # database connection
+│   ├── db/                    # database connection
 │   │   └── postgres.go
-│   ├── transport/
-│   │   └── http/            # router, middleware, response
-│   │       ├── middleware.go
-│   │       ├── response.go
-│   │       └── router.go
-│   ├── mealplan/            # fitur meal plan
-│   │   ├── handler.go
-│   │   ├── model.go
-│   │   ├── repo.go
-│   │   └── service.go
-│   ├── recipes/             # fitur resep
-│   │   ├── handler.go
-│   │   ├── model.go
-│   │   ├── repo.go
-│   │   └── service.go
-│   └── shopping/            # fitur shopping list
-│       ├── handler.go
-│       ├── model.go
-│       ├── repo.go
-│       └── service.go
+│   ├── server/                # bootstrap router + server
+│   │   ├── router.go
+│   │   └── server.go
+│   ├── controller/            # HTTP handler
+│   │   └── auth_controller.go
+│   ├── routes/                # route registration
+│   │   ├── routes.go
+│   │   └── auth_routes.go
+│   ├── dto/                   # request/response payload
+│   │   └── auth_dto.go
+│   ├── entity/                # domain/entity model
+│   │   └── auth.go
+│   ├── repository/            # data access
+│   │   ├── auth_repo.go
+│   │   └── auth_repo_gorm.go
+│   ├── service/               # business logic
+│   │   └── auth_service.go
+│   ├── middleware/            # middleware lintas route
+│   │   └── jwt.go
+│   └── utils/                 # helper bersama
+│       └── response.go
 ├── migrations/              # database migrations
 ├── scripts/                 # helper scripts
 ├── go.mod
@@ -73,9 +70,10 @@ RecipeBox Backend menyediakan API untuk:
 
 ## Alur Layering
 
-- handler: HTTP request/response
-- service: business logic
-- repo: akses database
+- `controller`: HTTP request/response handling.
+- `service`: business logic.
+- `repository`: akses data (GORM/Postgres).
+- `entity`/`dto`: model domain dan payload API.
 
 ## Menjalankan Lokal (draft)
 
@@ -111,3 +109,15 @@ Untuk berhenti:
 ```bash
 docker compose down
 ```
+
+## Migration Helpers
+
+Gunakan helper script berikut:
+
+```bash
+./scripts/migrate-up.sh
+./scripts/migrate-down.sh 1
+./scripts/migrate-status.sh
+```
+
+Script membaca `DATABASE_URL` dari `.env`.
