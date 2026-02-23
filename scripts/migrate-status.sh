@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ENV_FILE="$ROOT_DIR/.env"
+MIGRATIONS_DIR="$ROOT_DIR/migrations"
+
+if [[ -f "$ENV_FILE" ]]; then
+  # shellcheck disable=SC1090
+  set -a; source "$ENV_FILE"; set +a
+fi
+
+if [[ -z "${DATABASE_URL:-}" ]]; then
+  echo "DATABASE_URL belum diset. Isi .env dulu." >&2
+  exit 1
+fi
+
+if command -v migrate >/dev/null 2>&1; then
+  migrate -path "$MIGRATIONS_DIR" -database "$DATABASE_URL" version || true
+fi
+
+if command -v psql >/dev/null 2>&1; then
+  echo "Current tables:"
+  psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "\\dt"
+  exit 0
+fi
+
+echo "Tool psql tidak ditemukan. Tidak bisa cek status tabel." >&2
+exit 1
