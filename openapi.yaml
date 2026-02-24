@@ -1,0 +1,387 @@
+openapi: 3.0.3
+info:
+  title: RecipeBox Backend API
+  version: 0.3.0
+  description: OpenAPI spec for local development and Postman import.
+servers:
+  - url: http://localhost:8080
+tags:
+  - name: System
+  - name: Auth
+paths:
+  /healthz:
+    get:
+      tags: [System]
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+  /api/v1/auth/register:
+    post:
+      tags: [Auth]
+      summary: Register user
+      description: Registers user and sets HttpOnly refresh token cookie named `refresh_token`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthEnvelope"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Email already registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/auth/login:
+    post:
+      tags: [Auth]
+      summary: Login user
+      description: Sets HttpOnly refresh token cookie named `refresh_token`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthEnvelope"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/auth/verify-email/request:
+    post:
+      tags: [Auth]
+      summary: Request email verification token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmailRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/MessageResponse"
+                  - $ref: "#/components/schemas/OneTimeTokenEnvelope"
+
+  /api/v1/auth/verify-email/confirm:
+    post:
+      tags: [Auth]
+      summary: Confirm email verification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyEmailRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Invalid token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/auth/password/forgot:
+    post:
+      tags: [Auth]
+      summary: Request password reset token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmailRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/MessageResponse"
+                  - $ref: "#/components/schemas/OneTimeTokenEnvelope"
+
+  /api/v1/auth/password/reset:
+    post:
+      tags: [Auth]
+      summary: Reset password by token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResetPasswordRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh access token
+      description: Reads refresh token from HttpOnly cookie `refresh_token` (or request body fallback), rotates token, and sets a new cookie.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenEnvelope"
+        "401":
+          description: Invalid refresh token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout and revoke refresh token
+      description: Reads refresh token from HttpOnly cookie `refresh_token` (or request body fallback), revokes it, and clears cookie.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /api/v1/auth/me:
+    get:
+      tags: [Auth]
+      summary: Get current user profile
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserEnvelope"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    RegisterRequest:
+      type: object
+      required: [name, email, password]
+      properties:
+        name:
+          type: string
+          example: Kahfi Smith
+        email:
+          type: string
+          format: email
+          example: test@example.com
+        password:
+          type: string
+          minLength: 8
+          maxLength: 72
+          example: Password123!
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: test@example.com
+        password:
+          type: string
+          example: Password123!
+    EmailRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+          example: test@example.com
+    VerifyEmailRequest:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+          example: verification-token
+    ResetPasswordRequest:
+      type: object
+      required: [token, newPassword]
+      properties:
+        token:
+          type: string
+          example: reset-token
+        newPassword:
+          type: string
+          minLength: 8
+          maxLength: 72
+          example: NewPassword123!
+    RefreshRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+          example: refresh-token
+    TokenPair:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        accessTokenExpiresAt:
+          type: string
+          format: date-time
+        refreshToken:
+          type: string
+          description: Empty in cookie-based mode; refresh token is stored in HttpOnly cookie.
+        refreshTokenExpiresAt:
+          type: string
+          format: date-time
+          description: Empty in cookie-based mode.
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        name:
+          type: string
+          example: Kahfi Smith
+        email:
+          type: string
+          format: email
+          example: test@example.com
+        emailVerifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    AuthPayload:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        tokens:
+          $ref: "#/components/schemas/TokenPair"
+    AuthEnvelope:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/AuthPayload"
+    TokenEnvelope:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/TokenPair"
+    UserEnvelope:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/User"
+    OneTimeToken:
+      type: object
+      properties:
+        token:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+    OneTimeTokenEnvelope:
+      type: object
+      properties:
+        message:
+          type: string
+        data:
+          $ref: "#/components/schemas/OneTimeToken"
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
