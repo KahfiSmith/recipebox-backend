@@ -6,7 +6,6 @@ ENV_FILE="$ROOT_DIR/.env"
 MIGRATIONS_DIR="$ROOT_DIR/migrations"
 
 if [[ -f "$ENV_FILE" ]]; then
-  # shellcheck disable=SC1090
   set -a; source "$ENV_FILE"; set +a
 fi
 

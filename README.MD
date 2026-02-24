@@ -23,19 +23,15 @@ RecipeBox Backend menyediakan API untuk:
 - Migration: golang-migrate
 - Config: environment variables (.env)
 - API Style: REST JSON
-- API Spec: OpenAPI (api/openapi.yaml)
 
 ## Struktur Proyek
 
 ```text
 .
-├── api/                     # OpenAPI spec
-│   └── openapi.yaml
 ├── cmd/
 │   └── api/                 # entrypoint aplikasi
 │       └── main.go
-├── configs/                 # contoh konfigurasi
-│   └── .env.example
+├── .env.example             # contoh konfigurasi
 ├── internal/
 │   ├── config/                # load env dan config
 │   │   └── config.go
@@ -77,7 +73,7 @@ RecipeBox Backend menyediakan API untuk:
 
 ## Menjalankan Lokal (draft)
 
-1. Salin `configs/.env.example` menjadi `.env`
+1. Salin `.env.example` menjadi `.env`
 2. Jalankan migration database
 3. Jalankan server:
 
@@ -89,6 +85,10 @@ go run ./cmd/api
 
 - `POST /api/v1/auth/register`
 - `POST /api/v1/auth/login`
+- `POST /api/v1/auth/verify-email/request`
+- `POST /api/v1/auth/verify-email/confirm`
+- `POST /api/v1/auth/password/forgot`
+- `POST /api/v1/auth/password/reset`
 - `POST /api/v1/auth/refresh`
 - `POST /api/v1/auth/logout`
 - `GET /api/v1/auth/me` (Bearer access token)
