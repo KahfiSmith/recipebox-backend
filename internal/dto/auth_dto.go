@@ -45,6 +45,10 @@ type AuthResponse struct {
 	Tokens TokenPair   `json:"tokens"`
 }
 
+type RegisterResponse struct {
+	User entity.User `json:"user"`
+}
+
 type OneTimeTokenResponse struct {
 	Token     string    `json:"token"`
 	ExpiresAt time.Time `json:"expiresAt"`

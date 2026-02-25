@@ -1,8 +1,10 @@
 package config
 
 import (
+	"bufio"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -20,6 +22,8 @@ type Config struct {
 }
 
 func Load() (Config, error) {
+	loadDotEnvIfPresent()
+
 	cfg := Config{
 		Env:                getEnv("APP_ENV", "development"),
 		HTTPAddr:           getEnv("HTTP_ADDR", ":8080"),
@@ -87,4 +91,45 @@ func getDuration(key string, fallback time.Duration) time.Duration {
 	}
 
 	return v
+}
+
+func loadDotEnvIfPresent() {
+	envFile := ".env"
+	if _, err := os.Stat(envFile); err != nil {
+		return
+	}
+
+	file, err := os.Open(filepath.Clean(envFile))
+	if err != nil {
+		return
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		key, value, ok := strings.Cut(line, "=")
+		if !ok {
+			continue
+		}
+
+		key = strings.TrimSpace(key)
+		value = strings.TrimSpace(value)
+		if key == "" {
+			continue
+		}
+
+		value = strings.Trim(value, `"'`)
+
+		// Keep shell-provided env values as highest priority.
+		if _, exists := os.LookupEnv(key); exists {
+			continue
+		}
+
+		_ = os.Setenv(key, value)
+	}
 }
