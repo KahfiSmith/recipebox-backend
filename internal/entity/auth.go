@@ -10,6 +10,7 @@ var (
 	ErrConflict            = errors.New("conflict")
 	ErrEmailTaken          = errors.New("email already registered")
 	ErrInvalidCredentials  = errors.New("invalid email or password")
+	ErrEmailNotVerified    = errors.New("email is not verified")
 	ErrInvalidRefreshToken = errors.New("invalid refresh token")
 	ErrInvalidVerifyToken  = errors.New("invalid email verification token")
 	ErrInvalidResetToken   = errors.New("invalid password reset token")
