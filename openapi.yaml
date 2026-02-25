@@ -29,7 +29,7 @@ paths:
     post:
       tags: [Auth]
       summary: Register user
-      description: Registers user and sets HttpOnly refresh token cookie named `refresh_token`.
+      description: Registers a new user account. Does not issue access/refresh tokens.
       requestBody:
         required: true
         content:
@@ -42,7 +42,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AuthEnvelope"
+                $ref: "#/components/schemas/RegisterEnvelope"
         "400":
           description: Bad request
           content:
@@ -76,6 +76,12 @@ paths:
                 $ref: "#/components/schemas/AuthEnvelope"
         "401":
           description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Email is not verified
           content:
             application/json:
               schema:
@@ -345,6 +351,16 @@ components:
           $ref: "#/components/schemas/User"
         tokens:
           $ref: "#/components/schemas/TokenPair"
+    RegisterPayload:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+    RegisterEnvelope:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/RegisterPayload"
     AuthEnvelope:
       type: object
       properties:
