@@ -45,40 +45,35 @@ func NewAuthService(repo repository.AuthRepository, jwtSecret string, accessToke
 	}
 }
 
-func (s *AuthService) Register(ctx context.Context, input dto.RegisterRequest, userAgent, ip string) (dto.AuthResponse, error) {
+func (s *AuthService) Register(ctx context.Context, input dto.RegisterRequest) (dto.RegisterResponse, error) {
 	name, err := normalizeName(input.Name)
 	if err != nil {
-		return dto.AuthResponse{}, err
+		return dto.RegisterResponse{}, err
 	}
 
 	email, err := normalizeEmail(input.Email)
 	if err != nil {
-		return dto.AuthResponse{}, err
+		return dto.RegisterResponse{}, err
 	}
 	if err := validatePassword(input.Password); err != nil {
-		return dto.AuthResponse{}, err
+		return dto.RegisterResponse{}, err
 	}
 
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(input.Password), s.bcryptCost)
 	if err != nil {
-		return dto.AuthResponse{}, fmt.Errorf("hash password: %w", err)
+		return dto.RegisterResponse{}, fmt.Errorf("hash password: %w", err)
 	}
 
 	user, err := s.repo.CreateUser(ctx, name, email, string(passwordHash))
 	if err != nil {
 		if errors.Is(err, entity.ErrConflict) {
-			return dto.AuthResponse{}, entity.ErrEmailTaken
+			return dto.RegisterResponse{}, entity.ErrEmailTaken
 		}
-		return dto.AuthResponse{}, err
-	}
-
-	tokens, err := s.issueTokens(ctx, user.ID, userAgent, ip)
-	if err != nil {
-		return dto.AuthResponse{}, err
+		return dto.RegisterResponse{}, err
 	}
 
 	user.PasswordHash = ""
-	return dto.AuthResponse{User: user, Tokens: tokens}, nil
+	return dto.RegisterResponse{User: user}, nil
 }
 
 func (s *AuthService) Login(ctx context.Context, input dto.LoginRequest, userAgent, ip string) (dto.AuthResponse, error) {
@@ -97,6 +92,9 @@ func (s *AuthService) Login(ctx context.Context, input dto.LoginRequest, userAge
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(input.Password)); err != nil {
 		return dto.AuthResponse{}, entity.ErrInvalidCredentials
+	}
+	if user.EmailVerifiedAt == nil {
+		return dto.AuthResponse{}, entity.ErrEmailNotVerified
 	}
 
 	tokens, err := s.issueTokens(ctx, user.ID, userAgent, ip)

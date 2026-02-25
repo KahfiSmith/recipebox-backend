@@ -9,6 +9,7 @@ import (
 
 	"recipebox-backend-go/internal/dto"
 	"recipebox-backend-go/internal/entity"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type mockAuthRepo struct {
@@ -121,10 +122,6 @@ func (m mockAuthRepo) ConsumePasswordResetTokenAndUpdatePassword(ctx context.Con
 func TestRegisterSuccess(t *testing.T) {
 	t.Parallel()
 
-	fixedNow := time.Date(2026, 2, 23, 10, 0, 0, 0, time.UTC)
-	var savedHash string
-	var savedIP string
-
 	repo := mockAuthRepo{
 		createUserFn: func(_ context.Context, name, email, passwordHash string) (entity.User, error) {
 			if name != "Kahfi Smith" {
@@ -138,30 +135,15 @@ func TestRegisterSuccess(t *testing.T) {
 			}
 			return entity.User{ID: 11, Name: name, Email: email, PasswordHash: passwordHash}, nil
 		},
-		saveRefreshTokenFn: func(_ context.Context, userID int64, tokenHash string, expiresAt time.Time, userAgent, ip string) error {
-			if userID != 11 {
-				t.Fatalf("unexpected user id: %d", userID)
-			}
-			if userAgent != "unit-test" {
-				t.Fatalf("unexpected user agent: %s", userAgent)
-			}
-			savedHash = tokenHash
-			savedIP = ip
-			if expiresAt.Before(fixedNow) {
-				t.Fatalf("refresh expiry should be after now")
-			}
-			return nil
-		},
 	}
 
 	svc := NewAuthService(repo, strings.Repeat("a", 32), 15*time.Minute, 24*time.Hour, 10)
-	svc.now = func() time.Time { return fixedNow }
 
 	resp, err := svc.Register(context.Background(), dto.RegisterRequest{
 		Name:     "Kahfi Smith",
 		Email:    " User@Example.com ",
 		Password: "secret123",
-	}, "unit-test", " 127.0.0.1 ")
+	})
 	if err != nil {
 		t.Fatalf("Register() error = %v", err)
 	}
@@ -174,15 +156,6 @@ func TestRegisterSuccess(t *testing.T) {
 	}
 	if resp.User.PasswordHash != "" {
 		t.Fatalf("user password hash must be hidden in response")
-	}
-	if resp.Tokens.AccessToken == "" || resp.Tokens.RefreshToken == "" {
-		t.Fatalf("expected token pair to be generated")
-	}
-	if savedHash != hashToken(resp.Tokens.RefreshToken) {
-		t.Fatalf("stored refresh hash does not match token")
-	}
-	if savedIP != "127.0.0.1" {
-		t.Fatalf("ip should be sanitized, got: %q", savedIP)
 	}
 }
 
@@ -204,7 +177,7 @@ func TestRegisterEmailTaken(t *testing.T) {
 		Name:     "Kahfi Smith",
 		Email:    "user@example.com",
 		Password: "secret123",
-	}, "", "")
+	})
 	if !errors.Is(err, entity.ErrEmailTaken) {
 		t.Fatalf("expected ErrEmailTaken, got %v", err)
 	}
@@ -219,7 +192,7 @@ func TestRegisterNameRequired(t *testing.T) {
 		Name:     "   ",
 		Email:    "user@example.com",
 		Password: "secret123",
-	}, "", "")
+	})
 	if err == nil || err.Error() != "name is required" {
 		t.Fatalf("expected name required validation error, got %v", err)
 	}
@@ -242,6 +215,40 @@ func TestLoginInvalidCredentialsWhenUserMissing(t *testing.T) {
 	}, "", "")
 	if !errors.Is(err, entity.ErrInvalidCredentials) {
 		t.Fatalf("expected ErrInvalidCredentials, got %v", err)
+	}
+}
+
+func TestLoginRejectsUnverifiedEmail(t *testing.T) {
+	t.Parallel()
+
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte("secret123"), 10)
+	if err != nil {
+		t.Fatalf("GenerateFromPassword() error = %v", err)
+	}
+
+	repo := mockAuthRepo{
+		findUserByEmailFn: func(_ context.Context, _ string) (entity.User, error) {
+			return entity.User{
+				ID:           5,
+				Email:        "user@example.com",
+				PasswordHash: string(passwordHash),
+				// EmailVerifiedAt nil means not yet verified.
+			}, nil
+		},
+		saveRefreshTokenFn: func(_ context.Context, _ int64, _ string, _ time.Time, _, _ string) error {
+			t.Fatalf("SaveRefreshToken() should not be called for unverified email")
+			return nil
+		},
+	}
+
+	svc := NewAuthService(repo, strings.Repeat("c", 32), 15*time.Minute, 24*time.Hour, 10)
+
+	_, err = svc.Login(context.Background(), dto.LoginRequest{
+		Email:    "user@example.com",
+		Password: "secret123",
+	}, "", "")
+	if !errors.Is(err, entity.ErrEmailNotVerified) {
+		t.Fatalf("expected ErrEmailNotVerified, got %v", err)
 	}
 }
 
