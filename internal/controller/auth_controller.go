@@ -39,7 +39,7 @@ func (h *AuthController) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := h.service.Register(r.Context(), input, r.UserAgent(), extractIP(r.RemoteAddr))
+	resp, err := h.service.Register(r.Context(), input)
 	if err != nil {
 		switch {
 		case errors.Is(err, entity.ErrEmailTaken):
@@ -52,9 +52,6 @@ func (h *AuthController) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	setRefreshTokenCookie(w, resp.Tokens.RefreshToken, h.refreshCookieTTL, h.refreshCookieSecure)
-	resp.Tokens.RefreshToken = ""
-	resp.Tokens.RefreshTokenExpiresAt = time.Time{}
 	utils.JSON(w, http.StatusCreated, map[string]any{"data": resp})
 }
 
@@ -70,6 +67,8 @@ func (h *AuthController) Login(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case errors.Is(err, entity.ErrInvalidCredentials):
 			utils.Error(w, http.StatusUnauthorized, err.Error())
+		case errors.Is(err, entity.ErrEmailNotVerified):
+			utils.Error(w, http.StatusForbidden, err.Error())
 		default:
 			utils.Error(w, http.StatusInternalServerError, "internal server error")
 		}
