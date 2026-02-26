@@ -93,6 +93,12 @@ go run ./cmd/api
 - `POST /api/v1/auth/logout`
 - `GET /api/v1/auth/me` (Bearer access token)
 
+Catatan auth:
+- Endpoint sensitif (`login`, `refresh`, `verify-email/request`, `password/forgot`) sudah memakai rate limit per-IP (`AUTH_RATE_LIMIT_PER_MINUTE`).
+- Email verifikasi dan reset password dikirim via SMTP (`SMTP_*`).
+- Saat `AUTH_DEBUG_EXPOSE_TOKENS=true`, token one-time masih dikembalikan di response (mode lokal/debug).
+- Saat `AUTH_DEBUG_EXPOSE_TOKENS=false`, `SMTP_HOST` wajib terisi.
+
 Contoh base URL untuk frontend:
 
 - `http://localhost:8080/api/v1`

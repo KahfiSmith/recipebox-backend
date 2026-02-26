@@ -60,7 +60,7 @@ paths:
     post:
       tags: [Auth]
       summary: Login user
-      description: Sets HttpOnly refresh token cookie named `refresh_token`.
+      description: Sets HttpOnly refresh token cookie named `refresh_token`. Endpoint is rate-limited.
       requestBody:
         required: true
         content:
@@ -86,11 +86,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /api/v1/auth/verify-email/request:
     post:
       tags: [Auth]
       summary: Request email verification token
+      description: Sends verification instructions via email. Token payload is only returned in debug mode.
       requestBody:
         required: true
         content:
@@ -106,6 +113,12 @@ paths:
                 oneOf:
                   - $ref: "#/components/schemas/MessageResponse"
                   - $ref: "#/components/schemas/OneTimeTokenEnvelope"
+        "429":
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /api/v1/auth/verify-email/confirm:
     post:
@@ -135,6 +148,7 @@ paths:
     post:
       tags: [Auth]
       summary: Request password reset token
+      description: Sends reset instructions via email. Token payload is only returned in debug mode.
       requestBody:
         required: true
         content:
@@ -150,6 +164,12 @@ paths:
                 oneOf:
                   - $ref: "#/components/schemas/MessageResponse"
                   - $ref: "#/components/schemas/OneTimeTokenEnvelope"
+        "429":
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /api/v1/auth/password/reset:
     post:
@@ -179,7 +199,7 @@ paths:
     post:
       tags: [Auth]
       summary: Refresh access token
-      description: Reads refresh token from HttpOnly cookie `refresh_token` (or request body fallback), rotates token, and sets a new cookie.
+      description: Reads refresh token from HttpOnly cookie `refresh_token` (or request body fallback), rotates token, and sets a new cookie. Endpoint is rate-limited.
       requestBody:
         content:
           application/json:
@@ -194,6 +214,12 @@ paths:
                 $ref: "#/components/schemas/TokenEnvelope"
         "401":
           description: Invalid refresh token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too many requests
           content:
             application/json:
               schema:
