@@ -8,8 +8,10 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"log"
 	"net"
 	"net/mail"
+	"net/url"
 	"strings"
 	"time"
 
@@ -30,12 +32,19 @@ type AuthService struct {
 	resetPasswordTTL time.Duration
 	bcryptCost       int
 	now              func() time.Time
+	emailSender      EmailSender
+	frontendBaseURL  string
+	exposeTokens     bool
 }
 
 const (
 	accessTokenIssuer   = "recipebox-api"
 	accessTokenAudience = "recipebox-client"
 )
+
+type EmailSender interface {
+	Send(ctx context.Context, to, subject, body string) error
+}
 
 func NewAuthService(repo repository.AuthRepository, jwtSecret string, accessTokenTTL, refreshTokenTTL time.Duration, bcryptCost int) *AuthService {
 	return &AuthService{
@@ -47,7 +56,14 @@ func NewAuthService(repo repository.AuthRepository, jwtSecret string, accessToke
 		resetPasswordTTL: 1 * time.Hour,
 		bcryptCost:       bcryptCost,
 		now:              time.Now,
+		exposeTokens:     true,
 	}
+}
+
+func (s *AuthService) ConfigureEmailDelivery(sender EmailSender, frontendBaseURL string, exposeTokens bool) {
+	s.emailSender = sender
+	s.frontendBaseURL = strings.TrimRight(strings.TrimSpace(frontendBaseURL), "/")
+	s.exposeTokens = exposeTokens
 }
 
 func (s *AuthService) Register(ctx context.Context, input dto.RegisterRequest) (dto.RegisterResponse, error) {
@@ -121,6 +137,7 @@ func (s *AuthService) Refresh(ctx context.Context, refreshToken, userAgent, ip s
 	userID, err := s.repo.FindRefreshTokenOwner(ctx, oldHash)
 	if err != nil {
 		if errors.Is(err, entity.ErrNotFound) {
+			s.detectRefreshTokenReuse(ctx, oldHash)
 			return dto.TokenPair{}, entity.ErrInvalidRefreshToken
 		}
 		return dto.TokenPair{}, err
@@ -201,6 +218,13 @@ func (s *AuthService) RequestEmailVerification(ctx context.Context, input dto.Em
 		return dto.OneTimeTokenResponse{}, err
 	}
 
+	if err := s.sendEmailVerification(ctx, user.Email, rawToken, expiresAt); err != nil {
+		return dto.OneTimeTokenResponse{}, err
+	}
+	if !s.exposeTokens {
+		rawToken = ""
+	}
+
 	return dto.OneTimeTokenResponse{Token: rawToken, ExpiresAt: expiresAt}, nil
 }
 
@@ -241,6 +265,13 @@ func (s *AuthService) RequestPasswordReset(ctx context.Context, input dto.EmailR
 	expiresAt := s.now().Add(s.resetPasswordTTL)
 	if err := s.repo.SavePasswordResetToken(ctx, user.ID, hashToken(rawToken), expiresAt); err != nil {
 		return dto.OneTimeTokenResponse{}, err
+	}
+
+	if err := s.sendPasswordReset(ctx, user.Email, rawToken, expiresAt); err != nil {
+		return dto.OneTimeTokenResponse{}, err
+	}
+	if !s.exposeTokens {
+		rawToken = ""
 	}
 
 	return dto.OneTimeTokenResponse{Token: rawToken, ExpiresAt: expiresAt}, nil
@@ -405,4 +436,68 @@ func sanitizeIP(ip string) string {
 		return ""
 	}
 	return parsed.String()
+}
+
+func (s *AuthService) detectRefreshTokenReuse(ctx context.Context, tokenHash string) {
+	token, err := s.repo.FindRefreshTokenByHash(ctx, tokenHash)
+	if err != nil {
+		return
+	}
+	if token.RevokedAt == nil || token.ReplacedByTokenHash == nil {
+		return
+	}
+	if err := s.repo.RevokeAllUserRefreshTokens(ctx, token.UserID); err != nil {
+		log.Printf("auth: failed to revoke all user refresh tokens after reuse detection: %v", err)
+	}
+}
+
+func (s *AuthService) sendEmailVerification(ctx context.Context, to, token string, expiresAt time.Time) error {
+	subject := "Verify your RecipeBox account"
+	body := fmt.Sprintf(
+		"Use this token to verify your email: %s\nExpires at: %s",
+		token,
+		expiresAt.UTC().Format(time.RFC3339),
+	)
+	if link := s.buildActionLink("/verify-email", token); link != "" {
+		body = fmt.Sprintf(
+			"Verify your RecipeBox account by opening this link:\n%s\n\nThis link expires at %s.",
+			link,
+			expiresAt.UTC().Format(time.RFC3339),
+		)
+	}
+	return s.sendEmail(ctx, to, subject, body)
+}
+
+func (s *AuthService) sendPasswordReset(ctx context.Context, to, token string, expiresAt time.Time) error {
+	subject := "Reset your RecipeBox password"
+	body := fmt.Sprintf(
+		"Use this token to reset your password: %s\nExpires at: %s",
+		token,
+		expiresAt.UTC().Format(time.RFC3339),
+	)
+	if link := s.buildActionLink("/reset-password", token); link != "" {
+		body = fmt.Sprintf(
+			"Reset your RecipeBox password by opening this link:\n%s\n\nThis link expires at %s.",
+			link,
+			expiresAt.UTC().Format(time.RFC3339),
+		)
+	}
+	return s.sendEmail(ctx, to, subject, body)
+}
+
+func (s *AuthService) sendEmail(ctx context.Context, to, subject, body string) error {
+	if s.emailSender == nil {
+		if s.exposeTokens {
+			return nil
+		}
+		return errors.New("email sender is not configured")
+	}
+	return s.emailSender.Send(ctx, to, subject, body)
+}
+
+func (s *AuthService) buildActionLink(path, token string) string {
+	if s.frontendBaseURL == "" {
+		return ""
+	}
+	return s.frontendBaseURL + path + "?token=" + url.QueryEscape(token)
 }
