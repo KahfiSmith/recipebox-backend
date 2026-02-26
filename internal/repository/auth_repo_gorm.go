@@ -81,6 +81,17 @@ func (r *AuthGormRepository) FindRefreshTokenOwner(ctx context.Context, tokenHas
 	return token.UserID, nil
 }
 
+func (r *AuthGormRepository) FindRefreshTokenByHash(ctx context.Context, tokenHash string) (entity.RefreshToken, error) {
+	var token entity.RefreshToken
+	if err := r.db.WithContext(ctx).Where("token_hash = ?", tokenHash).Take(&token).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.RefreshToken{}, entity.ErrNotFound
+		}
+		return entity.RefreshToken{}, fmt.Errorf("find refresh token by hash: %w", err)
+	}
+	return token, nil
+}
+
 func (r *AuthGormRepository) RotateRefreshToken(ctx context.Context, oldTokenHash, newTokenHash string, newExpiresAt time.Time, userAgent, ip string) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var oldToken entity.RefreshToken
