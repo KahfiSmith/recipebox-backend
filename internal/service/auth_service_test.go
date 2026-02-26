@@ -7,9 +7,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/bcrypt"
 	"recipebox-backend-go/internal/dto"
 	"recipebox-backend-go/internal/entity"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type mockAuthRepo struct {
@@ -337,6 +338,33 @@ func TestParseAccessToken(t *testing.T) {
 
 	if _, err := svc.ParseAccessToken("not-a-token"); err == nil {
 		t.Fatalf("expected parse error for malformed token")
+	}
+}
+
+func TestParseAccessTokenRejectsWrongAudience(t *testing.T) {
+	t.Parallel()
+
+	secret := strings.Repeat("f", 32)
+	svc := NewAuthService(mockAuthRepo{}, secret, 15*time.Minute, 24*time.Hour, 10)
+
+	now := time.Now().UTC()
+	claims := jwt.RegisteredClaims{
+		Issuer:    accessTokenIssuer,
+		Subject:   "42",
+		Audience:  []string{"another-client"},
+		ExpiresAt: jwt.NewNumericDate(now.Add(15 * time.Minute)),
+		NotBefore: jwt.NewNumericDate(now.Add(-5 * time.Second)),
+		IssuedAt:  jwt.NewNumericDate(now),
+		ID:        "acc_test-token-id",
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signed, err := token.SignedString([]byte(secret))
+	if err != nil {
+		t.Fatalf("sign token: %v", err)
+	}
+
+	if _, err := svc.ParseAccessToken(signed); err == nil {
+		t.Fatalf("expected parse error for wrong audience")
 	}
 }
 

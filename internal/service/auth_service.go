@@ -22,15 +22,20 @@ import (
 )
 
 type AuthService struct {
-	repo            repository.AuthRepository
-	jwtSecret       []byte
-	accessTokenTTL  time.Duration
-	refreshTokenTTL time.Duration
-	verifyEmailTTL  time.Duration
+	repo             repository.AuthRepository
+	jwtSecret        []byte
+	accessTokenTTL   time.Duration
+	refreshTokenTTL  time.Duration
+	verifyEmailTTL   time.Duration
 	resetPasswordTTL time.Duration
-	bcryptCost      int
-	now             func() time.Time
+	bcryptCost       int
+	now              func() time.Time
 }
+
+const (
+	accessTokenIssuer   = "recipebox-api"
+	accessTokenAudience = "recipebox-client"
+)
 
 func NewAuthService(repo repository.AuthRepository, jwtSecret string, accessTokenTTL, refreshTokenTTL time.Duration, bcryptCost int) *AuthService {
 	return &AuthService{
@@ -271,7 +276,12 @@ func (s *AuthService) ParseAccessToken(tokenString string) (int64, error) {
 			return nil, fmt.Errorf("unexpected signing method")
 		}
 		return s.jwtSecret, nil
-	}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}), jwt.WithLeeway(5*time.Second))
+	},
+		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}),
+		jwt.WithLeeway(5*time.Second),
+		jwt.WithIssuer(accessTokenIssuer),
+		jwt.WithAudience(accessTokenAudience),
+	)
 	if err != nil {
 		return 0, fmt.Errorf("parse access token: %w", err)
 	}
@@ -291,9 +301,6 @@ func (s *AuthService) ParseAccessToken(tokenString string) (int64, error) {
 
 	if claims.ID == "" || !strings.HasPrefix(claims.ID, "acc_") {
 		return 0, errors.New("invalid token id")
-	}
-	if claims.Issuer != "recipebox-api" {
-		return 0, errors.New("invalid issuer")
 	}
 
 	return userID, nil
@@ -326,7 +333,15 @@ func (s *AuthService) createAccessToken(userID int64) (string, time.Time, error)
 		return "", time.Time{}, fmt.Errorf("generate token id: %w", err)
 	}
 
-	claims := jwt.RegisteredClaims{Issuer: "recipebox-api", Subject: fmt.Sprintf("%d", userID), Audience: []string{"recipebox-client"}, ExpiresAt: jwt.NewNumericDate(expiresAt), NotBefore: jwt.NewNumericDate(now.Add(-5 * time.Second)), IssuedAt: jwt.NewNumericDate(now), ID: "acc_" + jti}
+	claims := jwt.RegisteredClaims{
+		Issuer:    accessTokenIssuer,
+		Subject:   fmt.Sprintf("%d", userID),
+		Audience:  []string{accessTokenAudience},
+		ExpiresAt: jwt.NewNumericDate(expiresAt),
+		NotBefore: jwt.NewNumericDate(now.Add(-5 * time.Second)),
+		IssuedAt:  jwt.NewNumericDate(now),
+		ID:        "acc_" + jti,
+	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString(s.jwtSecret)
 	if err != nil {
