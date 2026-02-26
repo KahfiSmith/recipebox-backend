@@ -6,6 +6,6 @@ import (
 	"recipebox-backend-go/internal/service"
 )
 
-func RegisterAll(r chi.Router, authController *controller.AuthController, authService *service.AuthService) {
-	RegisterAuthRoutes(r, authController, authService)
+func RegisterAll(r chi.Router, authController *controller.AuthController, authService *service.AuthService, authRateLimitPerMinute int) {
+	RegisterAuthRoutes(r, authController, authService, authRateLimitPerMinute)
 }

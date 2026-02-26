@@ -7,15 +7,18 @@ import (
 	"recipebox-backend-go/internal/service"
 )
 
-func RegisterAuthRoutes(r chi.Router, authController *controller.AuthController, authService *service.AuthService) {
+func RegisterAuthRoutes(r chi.Router, authController *controller.AuthController, authService *service.AuthService, authRateLimitPerMinute int) {
+	authSensitiveRateLimit := middleware.NewAuthRateLimit(authRateLimitPerMinute)
+
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/register", authController.Register)
-		r.Post("/login", authController.Login)
-		r.Post("/verify-email/request", authController.RequestEmailVerification)
+
+		r.With(authSensitiveRateLimit).Post("/login", authController.Login)
+		r.With(authSensitiveRateLimit).Post("/verify-email/request", authController.RequestEmailVerification)
 		r.Post("/verify-email/confirm", authController.VerifyEmail)
-		r.Post("/password/forgot", authController.ForgotPassword)
+		r.With(authSensitiveRateLimit).Post("/password/forgot", authController.ForgotPassword)
 		r.Post("/password/reset", authController.ResetPassword)
-		r.Post("/refresh", authController.Refresh)
+		r.With(authSensitiveRateLimit).Post("/refresh", authController.Refresh)
 		r.Post("/logout", authController.Logout)
 
 		r.Group(func(r chi.Router) {
