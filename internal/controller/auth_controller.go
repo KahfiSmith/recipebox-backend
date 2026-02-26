@@ -161,15 +161,16 @@ func (h *AuthController) RequestEmailVerification(w http.ResponseWriter, r *http
 		return
 	}
 
-	if resp.Token == "" {
+	if resp.ExpiresAt.IsZero() {
 		utils.JSON(w, http.StatusOK, map[string]any{"message": "email is already verified"})
 		return
 	}
 
-	utils.JSON(w, http.StatusOK, map[string]any{
-		"message": "verification token generated",
-		"data":    resp,
-	})
+	payload := map[string]any{"message": "verification instructions sent"}
+	if resp.Token != "" {
+		payload["data"] = resp
+	}
+	utils.JSON(w, http.StatusOK, payload)
 }
 
 func (h *AuthController) VerifyEmail(w http.ResponseWriter, r *http.Request) {
@@ -212,10 +213,11 @@ func (h *AuthController) ForgotPassword(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	utils.JSON(w, http.StatusOK, map[string]any{
-		"message": "password reset token generated",
-		"data":    resp,
-	})
+	payload := map[string]any{"message": "if the email exists, reset instructions have been generated"}
+	if resp.Token != "" {
+		payload["data"] = resp
+	}
+	utils.JSON(w, http.StatusOK, payload)
 }
 
 func (h *AuthController) ResetPassword(w http.ResponseWriter, r *http.Request) {
