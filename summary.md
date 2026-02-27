@@ -18,8 +18,11 @@ frontend.
   endpoint).
 - Modul auth sudah diimplementasikan:
   - register/login/refresh/logout/me
+  - verify-email request/confirm
+  - forgot-password/reset-password
   - JWT access token
   - refresh token rotation (token disimpan dalam hash)
+  - rate limit pada endpoint auth sensitif
 - Data access layer auth sudah distandarkan ke GORM dengan pemisahan layer
   `controller`, `service`, `repository`, `entity`, dan `dto`.
 - OpenAPI sudah memuat endpoint recipes dan auth.

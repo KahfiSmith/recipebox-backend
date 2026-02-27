@@ -99,6 +99,9 @@ Catatan auth:
 - Saat `AUTH_DEBUG_EXPOSE_TOKENS=true`, token one-time masih dikembalikan di response (mode lokal/debug).
 - Saat `AUTH_DEBUG_EXPOSE_TOKENS=false`, `SMTP_HOST` wajib terisi.
 
+Panduan testing Postman:
+- Lihat `docs/postman-auth-testing.md`
+
 Contoh base URL untuk frontend:
 
 - `http://localhost:8080/api/v1`
