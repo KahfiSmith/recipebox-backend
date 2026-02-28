@@ -8,12 +8,13 @@ import (
 	chimw "github.com/go-chi/chi/v5/middleware"
 
 	"recipebox-backend-go/internal/controller"
+	"recipebox-backend-go/internal/middleware"
 	"recipebox-backend-go/internal/routes"
 	"recipebox-backend-go/internal/service"
 	"recipebox-backend-go/internal/utils"
 )
 
-func NewRouter(authController *controller.AuthController, authService *service.AuthService, authRateLimitPerMinute int) http.Handler {
+func NewRouter(authController *controller.AuthController, authService *service.AuthService, authRateLimitStore middleware.AuthRateLimitStore, authRateLimitPerMinute int) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(chimw.RequestID)
@@ -27,7 +28,7 @@ func NewRouter(authController *controller.AuthController, authService *service.A
 	})
 
 	r.Route("/api/v1", func(r chi.Router) {
-		routes.RegisterAll(r, authController, authService, authRateLimitPerMinute)
+		routes.RegisterAll(r, authController, authService, authRateLimitStore, authRateLimitPerMinute)
 	})
 
 	return r
