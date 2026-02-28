@@ -44,7 +44,7 @@ func (h *AuthController) Register(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case errors.Is(err, entity.ErrEmailTaken):
 			utils.Error(w, http.StatusConflict, err.Error())
-		case isBadRequest(err):
+		case entity.IsValidationError(err):
 			utils.Error(w, http.StatusBadRequest, err.Error())
 		default:
 			utils.Error(w, http.StatusInternalServerError, "internal server error")
@@ -153,7 +153,7 @@ func (h *AuthController) RequestEmailVerification(w http.ResponseWriter, r *http
 		switch {
 		case errors.Is(err, entity.ErrNotFound):
 			utils.JSON(w, http.StatusOK, map[string]any{"message": "if the email exists, verification instructions have been generated"})
-		case isBadRequest(err):
+		case entity.IsValidationError(err):
 			utils.Error(w, http.StatusBadRequest, err.Error())
 		default:
 			utils.Error(w, http.StatusInternalServerError, "internal server error")
@@ -205,7 +205,7 @@ func (h *AuthController) ForgotPassword(w http.ResponseWriter, r *http.Request) 
 		switch {
 		case errors.Is(err, entity.ErrNotFound):
 			utils.JSON(w, http.StatusOK, map[string]any{"message": "if the email exists, reset instructions have been generated"})
-		case isBadRequest(err):
+		case entity.IsValidationError(err):
 			utils.Error(w, http.StatusBadRequest, err.Error())
 		default:
 			utils.Error(w, http.StatusInternalServerError, "internal server error")
@@ -229,7 +229,7 @@ func (h *AuthController) ResetPassword(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.service.ResetPassword(r.Context(), input.Token, input.NewPassword); err != nil {
 		switch {
-		case errors.Is(err, entity.ErrInvalidResetToken), isBadRequest(err):
+		case errors.Is(err, entity.ErrInvalidResetToken), entity.IsValidationError(err):
 			utils.Error(w, http.StatusBadRequest, err.Error())
 		default:
 			utils.Error(w, http.StatusInternalServerError, "internal server error")
@@ -246,14 +246,6 @@ func extractIP(remoteAddr string) string {
 		return ""
 	}
 	return host
-}
-
-func isBadRequest(err error) bool {
-	msg := err.Error()
-	return msg == "name is required" || msg == "name must be at most 100 characters" ||
-		msg == "invalid email" || msg == "email is required" ||
-		msg == "password must be at least 8 characters" || msg == "password must be at most 72 characters" ||
-		msg == "invalid email verification token" || msg == "invalid password reset token"
 }
 
 func refreshTokenFromRequest(r *http.Request) (string, error) {
