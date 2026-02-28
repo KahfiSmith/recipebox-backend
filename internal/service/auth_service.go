@@ -144,6 +144,22 @@ func (s *AuthService) Refresh(ctx context.Context, refreshToken, userAgent, ip s
 		return dto.TokenPair{}, err
 	}
 
+	currentUserAgent := strings.TrimSpace(userAgent)
+	currentIP := sanitizeIP(ip)
+	storedToken, err := s.repo.FindRefreshTokenByHash(ctx, oldHash)
+	if err != nil {
+		if errors.Is(err, entity.ErrNotFound) {
+			return dto.TokenPair{}, entity.ErrInvalidRefreshToken
+		}
+		return dto.TokenPair{}, err
+	}
+	if refreshTokenMetadataMismatch(storedToken, currentUserAgent, currentIP) {
+		if err := s.repo.RevokeAllUserRefreshTokens(ctx, userID); err != nil {
+			return dto.TokenPair{}, err
+		}
+		return dto.TokenPair{}, entity.ErrInvalidRefreshToken
+	}
+
 	user, err := s.repo.FindUserByID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, entity.ErrNotFound) {
@@ -164,7 +180,7 @@ func (s *AuthService) Refresh(ctx context.Context, refreshToken, userAgent, ip s
 
 	refreshExp := now.Add(s.refreshTokenTTL)
 	newHash := hashToken(newRefreshToken)
-	if err := s.repo.RotateRefreshToken(ctx, oldHash, newHash, refreshExp, now, userAgent, sanitizeIP(ip)); err != nil {
+	if err := s.repo.RotateRefreshToken(ctx, oldHash, newHash, refreshExp, now, currentUserAgent, currentIP); err != nil {
 		if errors.Is(err, entity.ErrNotFound) {
 			return dto.TokenPair{}, entity.ErrInvalidRefreshToken
 		}
@@ -437,6 +453,16 @@ func sanitizeIP(ip string) string {
 		return ""
 	}
 	return parsed.String()
+}
+
+func refreshTokenMetadataMismatch(token entity.RefreshToken, currentUserAgent, currentIP string) bool {
+	if storedUserAgent := strings.TrimSpace(token.UserAgent); storedUserAgent != "" && currentUserAgent != "" && storedUserAgent != currentUserAgent {
+		return true
+	}
+	if token.IPAddress != nil && *token.IPAddress != "" && currentIP != "" && *token.IPAddress != currentIP {
+		return true
+	}
+	return false
 }
 
 func (s *AuthService) detectRefreshTokenReuse(ctx context.Context, tokenHash string) {

@@ -292,6 +292,17 @@ func TestRefreshSuccessRotation(t *testing.T) {
 			}
 			return 7, nil
 		},
+		findRefreshTokenByHashFn: func(_ context.Context, tokenHash string) (entity.RefreshToken, error) {
+			if tokenHash != expectedOldHash {
+				t.Fatalf("unexpected lookup hash: %q", tokenHash)
+			}
+			ip := "::1"
+			return entity.RefreshToken{
+				UserID:    7,
+				UserAgent: "unit-test",
+				IPAddress: &ip,
+			}, nil
+		},
 		findUserByIDFn: func(_ context.Context, id int64) (entity.User, error) {
 			if id != 7 {
 				t.Fatalf("unexpected user id: %d", id)
@@ -371,6 +382,59 @@ func TestRefreshReuseDetectionRevokesAllUserTokens(t *testing.T) {
 	svc := NewAuthService(repo, strings.Repeat("e", 32), 15*time.Minute, 24*time.Hour, 10)
 
 	_, err := svc.Refresh(context.Background(), oldToken, "unit-test", "127.0.0.1")
+	if !errors.Is(err, entity.ErrInvalidRefreshToken) {
+		t.Fatalf("expected ErrInvalidRefreshToken, got %v", err)
+	}
+	if !revokedAll {
+		t.Fatalf("expected all user refresh tokens to be revoked")
+	}
+}
+
+func TestRefreshRejectsMetadataMismatch(t *testing.T) {
+	t.Parallel()
+
+	oldToken := "refresh-token-old"
+	oldHash := hashToken(oldToken)
+	revokedAll := false
+
+	repo := mockAuthRepo{
+		findRefreshOwnerFn: func(_ context.Context, tokenHash string, _ time.Time) (int64, error) {
+			if tokenHash != oldHash {
+				t.Fatalf("unexpected hash %q", tokenHash)
+			}
+			return 55, nil
+		},
+		findRefreshTokenByHashFn: func(_ context.Context, tokenHash string) (entity.RefreshToken, error) {
+			if tokenHash != oldHash {
+				t.Fatalf("unexpected hash %q", tokenHash)
+			}
+			ip := "127.0.0.1"
+			return entity.RefreshToken{
+				UserID:    55,
+				UserAgent: "stored-agent",
+				IPAddress: &ip,
+			}, nil
+		},
+		revokeAllUserRefreshTokensFn: func(_ context.Context, userID int64) error {
+			if userID != 55 {
+				t.Fatalf("unexpected userID %d", userID)
+			}
+			revokedAll = true
+			return nil
+		},
+		findUserByIDFn: func(_ context.Context, _ int64) (entity.User, error) {
+			t.Fatalf("FindUserByID should not be reached on metadata mismatch")
+			return entity.User{}, nil
+		},
+		rotateRefreshTokenFn: func(_ context.Context, _, _ string, _, _ time.Time, _, _ string) error {
+			t.Fatalf("RotateRefreshToken should not be reached on metadata mismatch")
+			return nil
+		},
+	}
+
+	svc := NewAuthService(repo, strings.Repeat("e", 32), 15*time.Minute, 24*time.Hour, 10)
+
+	_, err := svc.Refresh(context.Background(), oldToken, "new-agent", "127.0.0.1")
 	if !errors.Is(err, entity.ErrInvalidRefreshToken) {
 		t.Fatalf("expected ErrInvalidRefreshToken, got %v", err)
 	}
