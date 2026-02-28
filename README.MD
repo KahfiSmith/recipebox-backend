@@ -19,6 +19,7 @@ RecipeBox Backend menyediakan API untuk:
 - Language: Go
 - HTTP Router: chi
 - Database: PostgreSQL
+- Cache / rate limit store: Redis
 - ORM/Query: GORM
 - Migration: golang-migrate
 - Config: environment variables (.env)
@@ -74,8 +75,14 @@ RecipeBox Backend menyediakan API untuk:
 ## Menjalankan Lokal (draft)
 
 1. Salin `.env.example` menjadi `.env`
-2. Jalankan migration database
-3. Jalankan server:
+2. Jalankan Redis:
+
+```bash
+docker compose up -d redis
+```
+
+3. Jalankan migration database
+4. Jalankan server:
 
 ```bash
 go run ./cmd/api
@@ -94,7 +101,7 @@ go run ./cmd/api
 - `GET /api/v1/auth/me` (Bearer access token)
 
 Catatan auth:
-- Endpoint sensitif (`login`, `refresh`, `verify-email/request`, `password/forgot`) sudah memakai rate limit per-IP (`AUTH_RATE_LIMIT_PER_MINUTE`).
+- Endpoint sensitif (`login`, `refresh`, `verify-email/request`, `password/forgot`) memakai rate limit per-IP (`AUTH_RATE_LIMIT_PER_MINUTE`) yang disimpan di Redis.
 - Email verifikasi dan reset password dikirim via SMTP (`SMTP_*`).
 - Saat `AUTH_DEBUG_EXPOSE_TOKENS=true`, token one-time masih dikembalikan di response (mode lokal/debug).
 - Saat `AUTH_DEBUG_EXPOSE_TOKENS=false`, `SMTP_HOST` wajib terisi.
@@ -117,6 +124,14 @@ Untuk berhenti:
 
 ```bash
 docker compose down
+```
+
+Untuk mengecek counter rate limit masuk ke Redis:
+
+```bash
+docker exec -it recipebox-redis redis-cli KEYS 'rl:auth:*'
+docker exec -it recipebox-redis redis-cli GET 'rl:auth:127.0.0.1:/api/v1/auth/login'
+docker exec -it recipebox-redis redis-cli TTL 'rl:auth:127.0.0.1:/api/v1/auth/login'
 ```
 
 ## Migration Helpers
