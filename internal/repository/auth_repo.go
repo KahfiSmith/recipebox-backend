@@ -12,9 +12,9 @@ type AuthRepository interface {
 	FindUserByID(ctx context.Context, id int64) (entity.User, error)
 	UpdateUserPassword(ctx context.Context, userID int64, passwordHash string) error
 	SaveRefreshToken(ctx context.Context, userID int64, tokenHash string, expiresAt time.Time, userAgent, ip string) error
-	FindRefreshTokenOwner(ctx context.Context, tokenHash string) (int64, error)
+	FindRefreshTokenOwner(ctx context.Context, tokenHash string, now time.Time) (int64, error)
 	FindRefreshTokenByHash(ctx context.Context, tokenHash string) (entity.RefreshToken, error)
-	RotateRefreshToken(ctx context.Context, oldTokenHash, newTokenHash string, newExpiresAt time.Time, userAgent, ip string) error
+	RotateRefreshToken(ctx context.Context, oldTokenHash, newTokenHash string, newExpiresAt, now time.Time, userAgent, ip string) error
 	RevokeRefreshToken(ctx context.Context, tokenHash string) error
 	RevokeAllUserRefreshTokens(ctx context.Context, userID int64) error
 	SaveEmailVerificationToken(ctx context.Context, userID int64, tokenHash string, expiresAt time.Time) error

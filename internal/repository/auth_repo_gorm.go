@@ -70,9 +70,9 @@ func (r *AuthGormRepository) SaveRefreshToken(ctx context.Context, userID int64,
 	return nil
 }
 
-func (r *AuthGormRepository) FindRefreshTokenOwner(ctx context.Context, tokenHash string) (int64, error) {
+func (r *AuthGormRepository) FindRefreshTokenOwner(ctx context.Context, tokenHash string, now time.Time) (int64, error) {
 	var token entity.RefreshToken
-	if err := r.db.WithContext(ctx).Select("user_id").Where("token_hash = ? AND revoked_at IS NULL AND expires_at > NOW()", tokenHash).Take(&token).Error; err != nil {
+	if err := r.db.WithContext(ctx).Select("user_id").Where("token_hash = ? AND revoked_at IS NULL AND expires_at > ?", tokenHash, now).Take(&token).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return 0, entity.ErrNotFound
 		}
@@ -92,17 +92,16 @@ func (r *AuthGormRepository) FindRefreshTokenByHash(ctx context.Context, tokenHa
 	return token, nil
 }
 
-func (r *AuthGormRepository) RotateRefreshToken(ctx context.Context, oldTokenHash, newTokenHash string, newExpiresAt time.Time, userAgent, ip string) error {
+func (r *AuthGormRepository) RotateRefreshToken(ctx context.Context, oldTokenHash, newTokenHash string, newExpiresAt, now time.Time, userAgent, ip string) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var oldToken entity.RefreshToken
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("token_hash = ? AND revoked_at IS NULL AND expires_at > NOW()", oldTokenHash).Take(&oldToken).Error; err != nil {
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("token_hash = ? AND revoked_at IS NULL AND expires_at > ?", oldTokenHash, now).Take(&oldToken).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return entity.ErrNotFound
 			}
 			return fmt.Errorf("lock refresh token: %w", err)
 		}
 
-		now := time.Now().UTC()
 		replacedBy := newTokenHash
 		if err := tx.Model(&entity.RefreshToken{}).Where("id = ?", oldToken.ID).Updates(map[string]any{"revoked_at": now, "replaced_by_token_hash": replacedBy}).Error; err != nil {
 			return fmt.Errorf("revoke old refresh token: %w", err)
@@ -206,6 +205,12 @@ func (r *AuthGormRepository) ConsumePasswordResetTokenAndUpdatePassword(ctx cont
 			"updated_at":    now,
 		}).Error; err != nil {
 			return fmt.Errorf("update password by reset token: %w", err)
+		}
+
+		if err := tx.Model(&entity.PasswordResetToken{}).
+			Where("user_id = ? AND consumed_at IS NULL AND expires_at > ?", token.UserID, now).
+			Update("consumed_at", now).Error; err != nil {
+			return fmt.Errorf("consume remaining password reset tokens: %w", err)
 		}
 
 		if err := tx.Model(&entity.RefreshToken{}).
