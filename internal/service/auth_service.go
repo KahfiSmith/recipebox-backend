@@ -134,7 +134,8 @@ func (s *AuthService) Refresh(ctx context.Context, refreshToken, userAgent, ip s
 	}
 
 	oldHash := hashToken(refreshToken)
-	userID, err := s.repo.FindRefreshTokenOwner(ctx, oldHash)
+	now := s.now()
+	userID, err := s.repo.FindRefreshTokenOwner(ctx, oldHash, now)
 	if err != nil {
 		if errors.Is(err, entity.ErrNotFound) {
 			s.detectRefreshTokenReuse(ctx, oldHash)
@@ -161,9 +162,9 @@ func (s *AuthService) Refresh(ctx context.Context, refreshToken, userAgent, ip s
 		return dto.TokenPair{}, fmt.Errorf("generate refresh token: %w", err)
 	}
 
-	refreshExp := s.now().Add(s.refreshTokenTTL)
+	refreshExp := now.Add(s.refreshTokenTTL)
 	newHash := hashToken(newRefreshToken)
-	if err := s.repo.RotateRefreshToken(ctx, oldHash, newHash, refreshExp, userAgent, sanitizeIP(ip)); err != nil {
+	if err := s.repo.RotateRefreshToken(ctx, oldHash, newHash, refreshExp, now, userAgent, sanitizeIP(ip)); err != nil {
 		if errors.Is(err, entity.ErrNotFound) {
 			return dto.TokenPair{}, entity.ErrInvalidRefreshToken
 		}
@@ -384,10 +385,10 @@ func (s *AuthService) createAccessToken(userID int64) (string, time.Time, error)
 func normalizeEmail(email string) (string, error) {
 	email = strings.ToLower(strings.TrimSpace(email))
 	if email == "" {
-		return "", errors.New("email is required")
+		return "", entity.ValidationError{Message: "email is required"}
 	}
 	if _, err := mail.ParseAddress(email); err != nil {
-		return "", errors.New("invalid email")
+		return "", entity.ValidationError{Message: "invalid email"}
 	}
 	return email, nil
 }
@@ -395,20 +396,20 @@ func normalizeEmail(email string) (string, error) {
 func normalizeName(name string) (string, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
-		return "", errors.New("name is required")
+		return "", entity.ValidationError{Message: "name is required"}
 	}
 	if len(name) > 100 {
-		return "", errors.New("name must be at most 100 characters")
+		return "", entity.ValidationError{Message: "name must be at most 100 characters"}
 	}
 	return name, nil
 }
 
 func validatePassword(password string) error {
 	if len(password) < 8 {
-		return errors.New("password must be at least 8 characters")
+		return entity.ValidationError{Message: "password must be at least 8 characters"}
 	}
 	if len(password) > 72 {
-		return errors.New("password must be at most 72 characters")
+		return entity.ValidationError{Message: "password must be at most 72 characters"}
 	}
 	return nil
 }

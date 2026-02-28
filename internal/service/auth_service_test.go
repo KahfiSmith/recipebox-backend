@@ -19,9 +19,9 @@ type mockAuthRepo struct {
 	findUserByIDFn                   func(ctx context.Context, id int64) (entity.User, error)
 	updateUserPasswordFn             func(ctx context.Context, userID int64, passwordHash string) error
 	saveRefreshTokenFn               func(ctx context.Context, userID int64, tokenHash string, expiresAt time.Time, userAgent, ip string) error
-	findRefreshOwnerFn               func(ctx context.Context, tokenHash string) (int64, error)
+	findRefreshOwnerFn               func(ctx context.Context, tokenHash string, now time.Time) (int64, error)
 	findRefreshTokenByHashFn         func(ctx context.Context, tokenHash string) (entity.RefreshToken, error)
-	rotateRefreshTokenFn             func(ctx context.Context, oldTokenHash, newTokenHash string, newExpiresAt time.Time, userAgent, ip string) error
+	rotateRefreshTokenFn             func(ctx context.Context, oldTokenHash, newTokenHash string, newExpiresAt, now time.Time, userAgent, ip string) error
 	revokeRefreshTokenFn             func(ctx context.Context, tokenHash string) error
 	revokeAllUserRefreshTokensFn     func(ctx context.Context, userID int64) error
 	saveEmailVerificationTokenFn     func(ctx context.Context, userID int64, tokenHash string, expiresAt time.Time) error
@@ -65,18 +65,18 @@ func (m mockAuthRepo) SaveRefreshToken(ctx context.Context, userID int64, tokenH
 	return m.saveRefreshTokenFn(ctx, userID, tokenHash, expiresAt, userAgent, ip)
 }
 
-func (m mockAuthRepo) FindRefreshTokenOwner(ctx context.Context, tokenHash string) (int64, error) {
+func (m mockAuthRepo) FindRefreshTokenOwner(ctx context.Context, tokenHash string, now time.Time) (int64, error) {
 	if m.findRefreshOwnerFn == nil {
 		return 0, errors.New("unexpected FindRefreshTokenOwner call")
 	}
-	return m.findRefreshOwnerFn(ctx, tokenHash)
+	return m.findRefreshOwnerFn(ctx, tokenHash, now)
 }
 
-func (m mockAuthRepo) RotateRefreshToken(ctx context.Context, oldTokenHash, newTokenHash string, newExpiresAt time.Time, userAgent, ip string) error {
+func (m mockAuthRepo) RotateRefreshToken(ctx context.Context, oldTokenHash, newTokenHash string, newExpiresAt, now time.Time, userAgent, ip string) error {
 	if m.rotateRefreshTokenFn == nil {
 		return errors.New("unexpected RotateRefreshToken call")
 	}
-	return m.rotateRefreshTokenFn(ctx, oldTokenHash, newTokenHash, newExpiresAt, userAgent, ip)
+	return m.rotateRefreshTokenFn(ctx, oldTokenHash, newTokenHash, newExpiresAt, now, userAgent, ip)
 }
 
 func (m mockAuthRepo) FindRefreshTokenByHash(ctx context.Context, tokenHash string) (entity.RefreshToken, error) {
@@ -283,9 +283,12 @@ func TestRefreshSuccessRotation(t *testing.T) {
 	var rotatedIP string
 
 	repo := mockAuthRepo{
-		findRefreshOwnerFn: func(_ context.Context, tokenHash string) (int64, error) {
+		findRefreshOwnerFn: func(_ context.Context, tokenHash string, now time.Time) (int64, error) {
 			if tokenHash != expectedOldHash {
 				t.Fatalf("unexpected old hash: %s", tokenHash)
+			}
+			if !now.Equal(fixedNow) {
+				t.Fatalf("unexpected now: %v", now)
 			}
 			return 7, nil
 		},
@@ -295,10 +298,16 @@ func TestRefreshSuccessRotation(t *testing.T) {
 			}
 			return entity.User{ID: 7, Email: "user@example.com"}, nil
 		},
-		rotateRefreshTokenFn: func(_ context.Context, oldTokenHash, newTokenHash string, _ time.Time, _ string, ip string) error {
+		rotateRefreshTokenFn: func(_ context.Context, oldTokenHash, newTokenHash string, newExpiresAt, now time.Time, _ string, ip string) error {
 			rotatedOldHash = oldTokenHash
 			rotatedNewHash = newTokenHash
 			rotatedIP = ip
+			if !now.Equal(fixedNow) {
+				t.Fatalf("unexpected rotate time: %v", now)
+			}
+			if !newExpiresAt.Equal(fixedNow.Add(24 * time.Hour)) {
+				t.Fatalf("unexpected refresh expiry: %v", newExpiresAt)
+			}
 			return nil
 		},
 	}
@@ -333,7 +342,7 @@ func TestRefreshReuseDetectionRevokesAllUserTokens(t *testing.T) {
 
 	revokedAll := false
 	repo := mockAuthRepo{
-		findRefreshOwnerFn: func(_ context.Context, tokenHash string) (int64, error) {
+		findRefreshOwnerFn: func(_ context.Context, tokenHash string, _ time.Time) (int64, error) {
 			if tokenHash != oldHash {
 				t.Fatalf("unexpected hash %q", tokenHash)
 			}
@@ -461,5 +470,41 @@ func TestResetPasswordInvalidToken(t *testing.T) {
 	err := svc.ResetPassword(context.Background(), "", "newPassword123")
 	if !errors.Is(err, entity.ErrInvalidResetToken) {
 		t.Fatalf("expected ErrInvalidResetToken, got %v", err)
+	}
+}
+
+func TestResetPasswordConsumesAllActiveTokens(t *testing.T) {
+	t.Parallel()
+
+	fixedNow := time.Date(2026, 2, 23, 12, 0, 0, 0, time.UTC)
+	var capturedHash string
+	var capturedPasswordHash string
+
+	repo := mockAuthRepo{
+		consumePasswordResetAndUpdateFn: func(_ context.Context, tokenHash, newPasswordHash string, now time.Time) error {
+			capturedHash = tokenHash
+			capturedPasswordHash = newPasswordHash
+			if !now.Equal(fixedNow) {
+				t.Fatalf("unexpected reset time: %v", now)
+			}
+			return nil
+		},
+	}
+
+	svc := NewAuthService(repo, strings.Repeat("i", 32), 15*time.Minute, 24*time.Hour, 10)
+	svc.now = func() time.Time { return fixedNow }
+
+	err := svc.ResetPassword(context.Background(), "reset-token", "newPassword123")
+	if err != nil {
+		t.Fatalf("ResetPassword() error = %v", err)
+	}
+	if capturedHash != hashToken("reset-token") {
+		t.Fatalf("unexpected token hash: %q", capturedHash)
+	}
+	if capturedPasswordHash == "" || capturedPasswordHash == "newPassword123" {
+		t.Fatalf("expected hashed password")
+	}
+	if bcrypt.CompareHashAndPassword([]byte(capturedPasswordHash), []byte("newPassword123")) != nil {
+		t.Fatalf("stored password hash does not match new password")
 	}
 }
