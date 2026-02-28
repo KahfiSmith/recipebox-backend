@@ -215,6 +215,17 @@ func TestRefreshUsesCookieAndRotatesRefreshToken(t *testing.T) {
 			}
 			return 7, nil
 		},
+		findRefreshTokenByHashFn: func(_ context.Context, tokenHash string) (entity.RefreshToken, error) {
+			if tokenHash != oldTokenHash {
+				t.Fatalf("expected stored token lookup to use the same hash")
+			}
+			ip := "127.0.0.1"
+			return entity.RefreshToken{
+				UserID:    7,
+				UserAgent: "refresh-agent",
+				IPAddress: &ip,
+			}, nil
+		},
 		findUserByIDFn: func(_ context.Context, id int64) (entity.User, error) {
 			if id != 7 {
 				t.Fatalf("unexpected userID %d", id)
@@ -324,6 +335,30 @@ func TestLogoutRevokesRefreshTokenAndClearsCookie(t *testing.T) {
 	}
 	if payload["message"] != "logged out" {
 		t.Fatalf("unexpected message %q", payload["message"])
+	}
+}
+
+func TestLogoutWithoutTokenIsStillSuccessful(t *testing.T) {
+	t.Parallel()
+
+	repo := mockAuthRepo{
+		revokeRefreshTokenFn: func(_ context.Context, _ string) error {
+			t.Fatalf("did not expect revoke when no token is provided")
+			return nil
+		},
+	}
+
+	authService := service.NewAuthService(repo, strings.Repeat("c", 32), 15*time.Minute, 24*time.Hour, bcrypt.MinCost)
+	controller := NewAuthController(authService, true, 24*time.Hour)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/logout", strings.NewReader(`{}`))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	controller.Logout(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
 	}
 }
 

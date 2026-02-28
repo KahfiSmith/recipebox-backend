@@ -62,7 +62,7 @@ func (h *AuthController) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := h.service.Login(r.Context(), input, r.UserAgent(), extractIP(r.RemoteAddr))
+	resp, err := h.service.Login(r.Context(), input, r.UserAgent(), extractRequestIP(r))
 	if err != nil {
 		switch {
 		case errors.Is(err, entity.ErrInvalidCredentials):
@@ -88,7 +88,7 @@ func (h *AuthController) Refresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := h.service.Refresh(r.Context(), refreshToken, r.UserAgent(), extractIP(r.RemoteAddr))
+	resp, err := h.service.Refresh(r.Context(), refreshToken, r.UserAgent(), extractRequestIP(r))
 	if err != nil {
 		switch {
 		case errors.Is(err, entity.ErrInvalidRefreshToken):
@@ -108,8 +108,10 @@ func (h *AuthController) Refresh(w http.ResponseWriter, r *http.Request) {
 func (h *AuthController) Logout(w http.ResponseWriter, r *http.Request) {
 	refreshToken, err := refreshTokenFromRequest(r)
 	if err != nil {
-		utils.Error(w, http.StatusBadRequest, "invalid request body")
-		return
+		if !errors.Is(err, io.EOF) {
+			utils.Error(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
 	}
 
 	if err := h.service.Logout(r.Context(), refreshToken); err != nil {
@@ -148,7 +150,7 @@ func (h *AuthController) RequestEmailVerification(w http.ResponseWriter, r *http
 		return
 	}
 
-	resp, err := h.service.RequestEmailVerification(r.Context(), input)
+	_, err := h.service.RequestEmailVerification(r.Context(), input)
 	if err != nil {
 		switch {
 		case errors.Is(err, entity.ErrNotFound):
@@ -161,16 +163,7 @@ func (h *AuthController) RequestEmailVerification(w http.ResponseWriter, r *http
 		return
 	}
 
-	if resp.ExpiresAt.IsZero() {
-		utils.JSON(w, http.StatusOK, map[string]any{"message": "email is already verified"})
-		return
-	}
-
-	payload := map[string]any{"message": "verification instructions sent"}
-	if resp.Token != "" {
-		payload["data"] = resp
-	}
-	utils.JSON(w, http.StatusOK, payload)
+	utils.JSON(w, http.StatusOK, map[string]any{"message": "if the email exists, verification instructions have been generated"})
 }
 
 func (h *AuthController) VerifyEmail(w http.ResponseWriter, r *http.Request) {
@@ -200,7 +193,7 @@ func (h *AuthController) ForgotPassword(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	resp, err := h.service.RequestPasswordReset(r.Context(), input)
+	_, err := h.service.RequestPasswordReset(r.Context(), input)
 	if err != nil {
 		switch {
 		case errors.Is(err, entity.ErrNotFound):
@@ -213,11 +206,7 @@ func (h *AuthController) ForgotPassword(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	payload := map[string]any{"message": "if the email exists, reset instructions have been generated"}
-	if resp.Token != "" {
-		payload["data"] = resp
-	}
-	utils.JSON(w, http.StatusOK, payload)
+	utils.JSON(w, http.StatusOK, map[string]any{"message": "if the email exists, reset instructions have been generated"})
 }
 
 func (h *AuthController) ResetPassword(w http.ResponseWriter, r *http.Request) {
@@ -240,10 +229,18 @@ func (h *AuthController) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	utils.JSON(w, http.StatusOK, map[string]any{"message": "password has been reset"})
 }
 
-func extractIP(remoteAddr string) string {
-	host, _, err := net.SplitHostPort(remoteAddr)
+func extractRequestIP(r *http.Request) string {
+	if xff := strings.TrimSpace(r.Header.Get("X-Forwarded-For")); xff != "" {
+		parts := strings.Split(xff, ",")
+		if len(parts) > 0 {
+			if ip := strings.TrimSpace(parts[0]); ip != "" {
+				return ip
+			}
+		}
+	}
+	host, _, err := net.SplitHostPort(strings.TrimSpace(r.RemoteAddr))
 	if err != nil {
-		return ""
+		return strings.TrimSpace(r.RemoteAddr)
 	}
 	return host
 }
