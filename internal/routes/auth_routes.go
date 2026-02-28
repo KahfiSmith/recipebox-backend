@@ -7,8 +7,8 @@ import (
 	"recipebox-backend-go/internal/service"
 )
 
-func RegisterAuthRoutes(r chi.Router, authController *controller.AuthController, authService *service.AuthService, authRateLimitPerMinute int) {
-	authSensitiveRateLimit := middleware.NewAuthRateLimit(authRateLimitPerMinute)
+func RegisterAuthRoutes(r chi.Router, authController *controller.AuthController, authService *service.AuthService, authRateLimitStore middleware.AuthRateLimitStore, authRateLimitPerMinute int) {
+	authSensitiveRateLimit := middleware.NewAuthRateLimit(authRateLimitStore, authRateLimitPerMinute)
 
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/register", authController.Register)
