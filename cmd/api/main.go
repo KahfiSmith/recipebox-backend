@@ -30,7 +30,10 @@ func main() {
 	}
 	defer sqlDB.Close()
 
-	apiServer := server.NewServer(cfg, database)
+	apiServer, err := server.NewServer(cfg, database)
+	if err != nil {
+		log.Fatalf("bootstrap server: %v", err)
+	}
 
 	errCh := make(chan error, 1)
 	go func() {

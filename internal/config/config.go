@@ -14,6 +14,9 @@ type Config struct {
 	Env                string
 	HTTPAddr           string
 	DatabaseURL        string
+	RedisAddr          string
+	RedisPassword      string
+	RedisDB            int
 	JWTSecret          string
 	AccessTokenTTL     time.Duration
 	RefreshTokenTTL    time.Duration
@@ -37,6 +40,9 @@ func Load() (Config, error) {
 		Env:                getEnv("APP_ENV", "development"),
 		HTTPAddr:           getEnv("HTTP_ADDR", ":8080"),
 		DatabaseURL:        strings.TrimSpace(os.Getenv("DATABASE_URL")),
+		RedisAddr:          strings.TrimSpace(os.Getenv("REDIS_ADDR")),
+		RedisPassword:      os.Getenv("REDIS_PASSWORD"),
+		RedisDB:            getInt("REDIS_DB", 0),
 		JWTSecret:          strings.TrimSpace(os.Getenv("JWT_SECRET")),
 		AccessTokenTTL:     getDuration("ACCESS_TOKEN_TTL", 15*time.Minute),
 		RefreshTokenTTL:    getDuration("REFRESH_TOKEN_TTL", 7*24*time.Hour),
@@ -55,6 +61,12 @@ func Load() (Config, error) {
 
 	if cfg.DatabaseURL == "" {
 		return Config{}, fmt.Errorf("DATABASE_URL is required")
+	}
+	if cfg.RedisAddr == "" {
+		return Config{}, fmt.Errorf("REDIS_ADDR is required")
+	}
+	if cfg.RedisDB < 0 {
+		return Config{}, fmt.Errorf("REDIS_DB must be zero or greater")
 	}
 	if len(cfg.JWTSecret) < 32 {
 		return Config{}, fmt.Errorf("JWT_SECRET must be at least 32 characters")
