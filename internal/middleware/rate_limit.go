@@ -1,40 +1,54 @@
 package middleware
 
 import (
+	"context"
+	"log"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"recipebox-backend-go/internal/utils"
 )
 
-type fixedWindowLimiter struct {
-	mu      sync.Mutex
-	limit   int
-	window  time.Duration
-	buckets map[string]windowBucket
+type AuthRateLimitStore interface {
+	Increment(ctx context.Context, key string, window time.Duration) (int64, error)
 }
 
-type windowBucket struct {
-	count      int
-	windowEnds time.Time
+type redisEvaler interface {
+	EvalInt(ctx context.Context, script string, keys []string, args []string) (int64, error)
 }
 
-func NewAuthRateLimit(limitPerMinute int) func(http.Handler) http.Handler {
+type redisAuthRateLimitStore struct {
+	client redisEvaler
+}
+
+const rateLimitIncrementScript = "local current = redis.call('INCR', KEYS[1]); if current == 1 then redis.call('PEXPIRE', KEYS[1], ARGV[1]); end; return current"
+
+func NewRedisAuthRateLimitStore(client redisEvaler) AuthRateLimitStore {
+	return &redisAuthRateLimitStore{client: client}
+}
+
+func NewAuthRateLimit(store AuthRateLimitStore, limitPerMinute int) func(http.Handler) http.Handler {
 	if limitPerMinute <= 0 {
 		limitPerMinute = 30
-	}
-	limiter := &fixedWindowLimiter{
-		limit:   limitPerMinute,
-		window:  time.Minute,
-		buckets: make(map[string]windowBucket),
 	}
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ip := extractRequestIP(r)
-			if !limiter.allow(ip + ":" + r.URL.Path) {
+			if store == nil {
+				utils.Error(w, http.StatusServiceUnavailable, "rate limit unavailable")
+				return
+			}
+
+			allowed, err := allowRequest(r.Context(), store, ip+":"+r.URL.Path, limitPerMinute, time.Minute)
+			if err != nil {
+				log.Printf("rate limit error: %v", err)
+				utils.Error(w, http.StatusServiceUnavailable, "rate limit unavailable")
+				return
+			}
+			if !allowed {
 				utils.Error(w, http.StatusTooManyRequests, "too many requests")
 				return
 			}
@@ -43,33 +57,20 @@ func NewAuthRateLimit(limitPerMinute int) func(http.Handler) http.Handler {
 	}
 }
 
-func (l *fixedWindowLimiter) allow(key string) bool {
-	now := time.Now().UTC()
-
-	l.mu.Lock()
-	defer l.mu.Unlock()
-
-	for k, b := range l.buckets {
-		if now.After(b.windowEnds) {
-			delete(l.buckets, k)
-		}
+func allowRequest(ctx context.Context, store AuthRateLimitStore, key string, limit int, window time.Duration) (bool, error) {
+	current, err := store.Increment(ctx, "rl:auth:"+key, window)
+	if err != nil {
+		return false, err
 	}
+	return current <= int64(limit), nil
+}
 
-	b := l.buckets[key]
-	if b.windowEnds.IsZero() || now.After(b.windowEnds) {
-		l.buckets[key] = windowBucket{
-			count:      1,
-			windowEnds: now.Add(l.window),
-		}
-		return true
+func (s *redisAuthRateLimitStore) Increment(ctx context.Context, key string, window time.Duration) (int64, error) {
+	result, err := s.client.EvalInt(ctx, rateLimitIncrementScript, []string{key}, []string{strconv.FormatInt(window.Milliseconds(), 10)})
+	if err != nil {
+		return 0, err
 	}
-
-	if b.count >= l.limit {
-		return false
-	}
-	b.count++
-	l.buckets[key] = b
-	return true
+	return result, nil
 }
 
 func extractRequestIP(r *http.Request) string {
