@@ -150,7 +150,7 @@ func (h *AuthController) RequestEmailVerification(w http.ResponseWriter, r *http
 		return
 	}
 
-	_, err := h.service.RequestEmailVerification(r.Context(), input)
+	resp, err := h.service.RequestEmailVerification(r.Context(), input)
 	if err != nil {
 		switch {
 		case errors.Is(err, entity.ErrNotFound):
@@ -163,7 +163,7 @@ func (h *AuthController) RequestEmailVerification(w http.ResponseWriter, r *http
 		return
 	}
 
-	utils.JSON(w, http.StatusOK, map[string]any{"message": "if the email exists, verification instructions have been generated"})
+	writeOneTimeTokenMessage(w, "if the email exists, verification instructions have been generated", resp)
 }
 
 func (h *AuthController) VerifyEmail(w http.ResponseWriter, r *http.Request) {
@@ -193,7 +193,7 @@ func (h *AuthController) ForgotPassword(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	_, err := h.service.RequestPasswordReset(r.Context(), input)
+	resp, err := h.service.RequestPasswordReset(r.Context(), input)
 	if err != nil {
 		switch {
 		case errors.Is(err, entity.ErrNotFound):
@@ -206,7 +206,7 @@ func (h *AuthController) ForgotPassword(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	utils.JSON(w, http.StatusOK, map[string]any{"message": "if the email exists, reset instructions have been generated"})
+	writeOneTimeTokenMessage(w, "if the email exists, reset instructions have been generated", resp)
 }
 
 func (h *AuthController) ResetPassword(w http.ResponseWriter, r *http.Request) {
@@ -284,4 +284,12 @@ func clearRefreshTokenCookie(w http.ResponseWriter, secure bool) {
 		MaxAge:   -1,
 		Expires:  time.Unix(0, 0),
 	})
+}
+
+func writeOneTimeTokenMessage(w http.ResponseWriter, message string, resp dto.OneTimeTokenResponse) {
+	payload := map[string]any{"message": message}
+	if resp.Token != "" {
+		payload["data"] = resp
+	}
+	utils.JSON(w, http.StatusOK, payload)
 }

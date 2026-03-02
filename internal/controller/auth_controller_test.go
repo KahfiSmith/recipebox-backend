@@ -387,6 +387,86 @@ func TestRegisterValidationReturnsBadRequest(t *testing.T) {
 	}
 }
 
+func TestRequestEmailVerificationIncludesDebugTokenInResponse(t *testing.T) {
+	t.Parallel()
+
+	repo := mockAuthRepo{
+		findUserByEmailFn: func(_ context.Context, email string) (entity.User, error) {
+			if email != "user@example.com" {
+				t.Fatalf("unexpected email %q", email)
+			}
+			return entity.User{ID: 5, Email: email}, nil
+		},
+	}
+
+	authService := service.NewAuthService(repo, strings.Repeat("e", 32), 15*time.Minute, 24*time.Hour, bcrypt.MinCost)
+	controller := NewAuthController(authService, false, 24*time.Hour)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/verify-email/request", strings.NewReader(`{"email":"user@example.com"}`))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	controller.RequestEmailVerification(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+
+	var payload struct {
+		Message string                   `json:"message"`
+		Data    dto.OneTimeTokenResponse `json:"data"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if payload.Message == "" {
+		t.Fatalf("expected message in response")
+	}
+	if payload.Data.Token == "" {
+		t.Fatalf("expected debug token in response body")
+	}
+}
+
+func TestForgotPasswordIncludesDebugTokenInResponse(t *testing.T) {
+	t.Parallel()
+
+	repo := mockAuthRepo{
+		findUserByEmailFn: func(_ context.Context, email string) (entity.User, error) {
+			if email != "user@example.com" {
+				t.Fatalf("unexpected email %q", email)
+			}
+			return entity.User{ID: 9, Email: email}, nil
+		},
+	}
+
+	authService := service.NewAuthService(repo, strings.Repeat("f", 32), 15*time.Minute, 24*time.Hour, bcrypt.MinCost)
+	controller := NewAuthController(authService, false, 24*time.Hour)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/password/forgot", strings.NewReader(`{"email":"user@example.com"}`))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	controller.ForgotPassword(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+
+	var payload struct {
+		Message string                   `json:"message"`
+		Data    dto.OneTimeTokenResponse `json:"data"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if payload.Message == "" {
+		t.Fatalf("expected message in response")
+	}
+	if payload.Data.Token == "" {
+		t.Fatalf("expected debug token in response body")
+	}
+}
+
 func findCookie(t *testing.T, cookies []*http.Cookie, name string) *http.Cookie {
 	t.Helper()
 
