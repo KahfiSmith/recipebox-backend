@@ -27,6 +27,7 @@ frontend.
   `controller`, `service`, `repository`, `entity`, dan `dto`.
 - OpenAPI sudah memuat endpoint recipes dan auth.
 - Migrasi auth tables sudah tersedia di `migrations/`.
+- Migrasi tabel inti untuk `recipes`, `meal_plans`, dan `shopping_items` sudah ditambahkan, tetapi endpoint modul tersebut masih memakai data mock dan belum membaca database.
 
 ## Struktur Proyek Inti
 

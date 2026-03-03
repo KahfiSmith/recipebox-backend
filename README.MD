@@ -100,8 +100,33 @@ go run ./cmd/api
 - `POST /api/v1/auth/logout`
 - `GET /api/v1/auth/me` (Bearer access token)
 
+## Endpoint Dashboard
+
+- `GET /api/v1/dashboard` (Bearer access token)
+- `GET /api/v1/recipes` (Bearer access token)
+- `GET /api/v1/meal-plans` (Bearer access token)
+- `GET /api/v1/shopping-items` (Bearer access token)
+
+Response dashboard saat ini menggabungkan:
+- ringkasan jumlah resep
+- daftar resep terbaru untuk kartu dashboard
+- meal plan terdekat
+- shopping items terbaru
+
+Endpoint ini disiapkan untuk kebutuhan frontend dashboard agar cukup melakukan satu request untuk data overview. Untuk halaman menu terpisah, backend juga menyediakan endpoint list per modul (`recipes`, `meal-plans`, `shopping-items`) dengan payload preview yang konsisten dengan data dashboard. Saat ini payload masih berupa data overview/listing, belum CRUD penuh untuk modul recipes, meal plan, atau shopping list.
+
+Schema database untuk modul tersebut sudah disiapkan lewat migration `000004_create_recipe_tables`, yang menambahkan tabel:
+- `recipes`
+- `meal_plans`
+- `shopping_items`
+
+Field utama tabel `recipes` sekarang disejajarkan dengan form frontend lewat auto-migration GORM saat server start, sehingga kolom recipe menjadi:
+- `name`
+- `category`
+- `prep_time`
+
 Catatan auth:
-- Endpoint sensitif (`login`, `refresh`, `verify-email/request`, `password/forgot`) memakai rate limit per-IP (`AUTH_RATE_LIMIT_PER_MINUTE`) yang disimpan di Redis.
+- Endpoint sensitif (`register`, `login`, `refresh`, `verify-email/request`, `password/forgot`) memakai rate limit per-IP (`AUTH_RATE_LIMIT_PER_MINUTE`) yang disimpan di Redis.
 - Email verifikasi dan reset password dikirim via SMTP (`SMTP_*`).
 - Saat `AUTH_DEBUG_EXPOSE_TOKENS=true`, token one-time masih dikembalikan di response (mode lokal/debug).
 - Saat `AUTH_DEBUG_EXPOSE_TOKENS=false`, `SMTP_HOST` wajib terisi.

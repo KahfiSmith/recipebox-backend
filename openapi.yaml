@@ -8,6 +8,10 @@ servers:
 tags:
   - name: System
   - name: Auth
+  - name: Dashboard
+  - name: Recipes
+  - name: Meal Plans
+  - name: Shopping Items
 paths:
   /healthz:
     get:
@@ -263,6 +267,90 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /api/v1/dashboard:
+    get:
+      tags: [Dashboard]
+      summary: Get dashboard overview
+      description: Returns dashboard data for recipes, meal plans, and shopping items in a single payload.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardEnvelope"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/recipes:
+    get:
+      tags: [Recipes]
+      summary: List recipes
+      description: Returns recipe cards for the recipes menu.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecipesEnvelope"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/meal-plans:
+    get:
+      tags: [Meal Plans]
+      summary: List meal plans
+      description: Returns upcoming meal plan entries for the meal plan menu.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MealPlansEnvelope"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/shopping-items:
+    get:
+      tags: [Shopping Items]
+      summary: List shopping items
+      description: Returns shopping list items for the shopping menu.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShoppingItemsEnvelope"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -402,6 +490,102 @@ components:
       properties:
         data:
           $ref: "#/components/schemas/User"
+    DashboardRecipe:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        title:
+          type: string
+        description:
+          type: string
+        totalIngredients:
+          type: integer
+        updatedAt:
+          type: string
+          format: date-time
+    DashboardMealPlan:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        scheduledAt:
+          type: string
+          format: date-time
+        mealType:
+          type: string
+          example: dinner
+        recipeId:
+          type: integer
+          format: int64
+        recipeTitle:
+          type: string
+    DashboardShoppingItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        quantity:
+          type: string
+        checked:
+          type: boolean
+    DashboardSummary:
+      type: object
+      properties:
+        recipeCount:
+          type: integer
+        upcomingMealPlanCount:
+          type: integer
+        pendingShoppingItemCount:
+          type: integer
+    DashboardPayload:
+      type: object
+      properties:
+        summary:
+          $ref: "#/components/schemas/DashboardSummary"
+        recipes:
+          type: array
+          items:
+            $ref: "#/components/schemas/DashboardRecipe"
+        mealPlans:
+          type: array
+          items:
+            $ref: "#/components/schemas/DashboardMealPlan"
+        shoppingItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/DashboardShoppingItem"
+    DashboardEnvelope:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/DashboardPayload"
+    RecipesEnvelope:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/DashboardRecipe"
+    MealPlansEnvelope:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/DashboardMealPlan"
+    ShoppingItemsEnvelope:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/DashboardShoppingItem"
     OneTimeToken:
       type: object
       properties:

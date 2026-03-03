@@ -1,0 +1,3 @@
+DROP TABLE IF EXISTS shopping_items;
+DROP TABLE IF EXISTS meal_plans;
+DROP TABLE IF EXISTS recipes;
