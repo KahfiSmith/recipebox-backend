@@ -1,17 +1,19 @@
 package routes
 
 import (
+	"net"
+
 	"github.com/go-chi/chi/v5"
 	"recipebox-backend-go/internal/controller"
 	"recipebox-backend-go/internal/middleware"
 	"recipebox-backend-go/internal/service"
 )
 
-func RegisterAuthRoutes(r chi.Router, authController *controller.AuthController, authService *service.AuthService, authRateLimitStore middleware.AuthRateLimitStore, authRateLimitPerMinute int) {
-	authSensitiveRateLimit := middleware.NewAuthRateLimit(authRateLimitStore, authRateLimitPerMinute)
+func RegisterAuthRoutes(r chi.Router, authController *controller.AuthController, authService *service.AuthService, authRateLimitStore middleware.AuthRateLimitStore, authRateLimitPerMinute int, trustedProxies []*net.IPNet) {
+	authSensitiveRateLimit := middleware.NewAuthRateLimit(authRateLimitStore, authRateLimitPerMinute, trustedProxies)
 
 	r.Route("/auth", func(r chi.Router) {
-		r.Post("/register", authController.Register)
+		r.With(authSensitiveRateLimit).Post("/register", authController.Register)
 
 		r.With(authSensitiveRateLimit).Post("/login", authController.Login)
 		r.With(authSensitiveRateLimit).Post("/verify-email/request", authController.RequestEmailVerification)
