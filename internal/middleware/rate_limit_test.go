@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"errors"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -34,7 +35,7 @@ func TestAuthRateLimitBlocksAfterLimit(t *testing.T) {
 		},
 	}
 
-	h := NewAuthRateLimit(store, 2)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	h := NewAuthRateLimit(store, 2, nil)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	}))
 
@@ -67,7 +68,7 @@ func TestAuthRateLimitReturnsServiceUnavailableOnStoreError(t *testing.T) {
 		incrementFn: func(_ context.Context, _ string, _ time.Duration) (int64, error) {
 			return 0, errors.New("redis unavailable")
 		},
-	}, 2)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	}, 2, nil)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	}))
 
@@ -78,5 +79,66 @@ func TestAuthRateLimitReturnsServiceUnavailableOnStoreError(t *testing.T) {
 	h.ServeHTTP(rec, req)
 	if rec.Code != http.StatusServiceUnavailable {
 		t.Fatalf("expected service unavailable, got %d", rec.Code)
+	}
+}
+
+func TestAuthRateLimitIgnoresForwardedHeaderFromUntrustedPeer(t *testing.T) {
+	t.Parallel()
+
+	var gotKey string
+	h := NewAuthRateLimit(stubRateLimitStore{
+		incrementFn: func(_ context.Context, key string, _ time.Duration) (int64, error) {
+			gotKey = key
+			return 1, nil
+		},
+	}, 2, nil)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", nil)
+	req.Header.Set("X-Forwarded-For", "203.0.113.50")
+	req.RemoteAddr = "198.18.0.5:12345"
+
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("expected request to pass, got %d", rec.Code)
+	}
+	if gotKey != "rl:auth:198.18.0.5:/api/v1/auth/login" {
+		t.Fatalf("unexpected key %q", gotKey)
+	}
+}
+
+func TestAuthRateLimitUsesForwardedHeaderFromTrustedProxy(t *testing.T) {
+	t.Parallel()
+
+	_, trustedProxy, err := net.ParseCIDR("10.0.0.0/8")
+	if err != nil {
+		t.Fatalf("parse trusted proxy cidr: %v", err)
+	}
+
+	var gotKey string
+	h := NewAuthRateLimit(stubRateLimitStore{
+		incrementFn: func(_ context.Context, key string, _ time.Duration) (int64, error) {
+			gotKey = key
+			return 1, nil
+		},
+	}, 2, []*net.IPNet{trustedProxy})(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", nil)
+	req.Header.Set("X-Forwarded-For", "203.0.113.50")
+	req.RemoteAddr = "10.1.2.3:12345"
+
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("expected request to pass, got %d", rec.Code)
+	}
+	if gotKey != "rl:auth:203.0.113.50:/api/v1/auth/login" {
+		t.Fatalf("unexpected key %q", gotKey)
 	}
 }

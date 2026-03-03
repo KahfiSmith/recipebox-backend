@@ -6,7 +6,6 @@ import (
 	"net"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"recipebox-backend-go/internal/utils"
@@ -30,13 +29,13 @@ func NewRedisAuthRateLimitStore(client redisEvaler) AuthRateLimitStore {
 	return &redisAuthRateLimitStore{client: client}
 }
 
-func NewAuthRateLimit(store AuthRateLimitStore, limitPerMinute int) func(http.Handler) http.Handler {
+func NewAuthRateLimit(store AuthRateLimitStore, limitPerMinute int, trustedProxies []*net.IPNet) func(http.Handler) http.Handler {
 	if limitPerMinute <= 0 {
 		limitPerMinute = 30
 	}
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ip := extractRequestIP(r)
+			ip := extractRequestIP(r, trustedProxies)
 			if store == nil {
 				utils.Error(w, http.StatusServiceUnavailable, "rate limit unavailable")
 				return
@@ -73,18 +72,6 @@ func (s *redisAuthRateLimitStore) Increment(ctx context.Context, key string, win
 	return result, nil
 }
 
-func extractRequestIP(r *http.Request) string {
-	if xff := strings.TrimSpace(r.Header.Get("X-Forwarded-For")); xff != "" {
-		parts := strings.Split(xff, ",")
-		if len(parts) > 0 {
-			if ip := strings.TrimSpace(parts[0]); ip != "" {
-				return ip
-			}
-		}
-	}
-	host, _, err := net.SplitHostPort(strings.TrimSpace(r.RemoteAddr))
-	if err != nil {
-		return strings.TrimSpace(r.RemoteAddr)
-	}
-	return host
+func extractRequestIP(r *http.Request, trustedProxies []*net.IPNet) string {
+	return utils.ClientIP(r, trustedProxies)
 }
