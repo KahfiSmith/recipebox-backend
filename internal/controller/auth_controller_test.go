@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"encoding/json"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -158,7 +159,7 @@ func TestLoginSetsRefreshCookieAndHidesTokenInBody(t *testing.T) {
 	}
 
 	authService := service.NewAuthService(repo, strings.Repeat("a", 32), 15*time.Minute, 24*time.Hour, bcrypt.MinCost)
-	controller := NewAuthController(authService, true, 24*time.Hour)
+	controller := NewAuthController(authService, true, 24*time.Hour, nil)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", strings.NewReader(`{"email":"user@example.com","password":"secret123"}`))
 	req.Header.Set("Content-Type", "application/json")
@@ -256,7 +257,7 @@ func TestRefreshUsesCookieAndRotatesRefreshToken(t *testing.T) {
 	}
 
 	authService := service.NewAuthService(repo, strings.Repeat("b", 32), 15*time.Minute, 24*time.Hour, bcrypt.MinCost)
-	controller := NewAuthController(authService, false, 24*time.Hour)
+	controller := NewAuthController(authService, false, 24*time.Hour, nil)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/refresh", http.NoBody)
 	req.AddCookie(&http.Cookie{Name: refreshTokenCookieName, Value: "refresh-token-old"})
@@ -305,7 +306,7 @@ func TestLogoutRevokesRefreshTokenAndClearsCookie(t *testing.T) {
 	}
 
 	authService := service.NewAuthService(repo, strings.Repeat("c", 32), 15*time.Minute, 24*time.Hour, bcrypt.MinCost)
-	controller := NewAuthController(authService, true, 24*time.Hour)
+	controller := NewAuthController(authService, true, 24*time.Hour, nil)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/logout", http.NoBody)
 	req.AddCookie(&http.Cookie{Name: refreshTokenCookieName, Value: "logout-token"})
@@ -349,7 +350,7 @@ func TestLogoutWithoutTokenIsStillSuccessful(t *testing.T) {
 	}
 
 	authService := service.NewAuthService(repo, strings.Repeat("c", 32), 15*time.Minute, 24*time.Hour, bcrypt.MinCost)
-	controller := NewAuthController(authService, true, 24*time.Hour)
+	controller := NewAuthController(authService, true, 24*time.Hour, nil)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/logout", strings.NewReader(`{}`))
 	req.Header.Set("Content-Type", "application/json")
@@ -366,7 +367,7 @@ func TestRegisterValidationReturnsBadRequest(t *testing.T) {
 	t.Parallel()
 
 	authService := service.NewAuthService(mockAuthRepo{}, strings.Repeat("d", 32), 15*time.Minute, 24*time.Hour, bcrypt.MinCost)
-	controller := NewAuthController(authService, false, 24*time.Hour)
+	controller := NewAuthController(authService, false, 24*time.Hour, nil)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", strings.NewReader(`{"name":"","email":"invalid","password":"123"}`))
 	req.Header.Set("Content-Type", "application/json")
@@ -400,7 +401,7 @@ func TestRequestEmailVerificationIncludesDebugTokenInResponse(t *testing.T) {
 	}
 
 	authService := service.NewAuthService(repo, strings.Repeat("e", 32), 15*time.Minute, 24*time.Hour, bcrypt.MinCost)
-	controller := NewAuthController(authService, false, 24*time.Hour)
+	controller := NewAuthController(authService, false, 24*time.Hour, nil)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/verify-email/request", strings.NewReader(`{"email":"user@example.com"}`))
 	req.Header.Set("Content-Type", "application/json")
@@ -440,7 +441,7 @@ func TestForgotPasswordIncludesDebugTokenInResponse(t *testing.T) {
 	}
 
 	authService := service.NewAuthService(repo, strings.Repeat("f", 32), 15*time.Minute, 24*time.Hour, bcrypt.MinCost)
-	controller := NewAuthController(authService, false, 24*time.Hour)
+	controller := NewAuthController(authService, false, 24*time.Hour, nil)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/password/forgot", strings.NewReader(`{"email":"user@example.com"}`))
 	req.Header.Set("Content-Type", "application/json")
@@ -465,6 +466,77 @@ func TestForgotPasswordIncludesDebugTokenInResponse(t *testing.T) {
 	if payload.Data.Token == "" {
 		t.Fatalf("expected debug token in response body")
 	}
+}
+
+func TestLoginUsesForwardedIPOnlyFromTrustedProxy(t *testing.T) {
+	t.Parallel()
+
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte("secret123"), bcrypt.MinCost)
+	if err != nil {
+		t.Fatalf("generate password hash: %v", err)
+	}
+
+	trustedProxy := mustParseCIDR(t, "10.0.0.0/8")
+	capturedIP := ""
+	repo := mockAuthRepo{
+		findUserByEmailFn: func(_ context.Context, _ string) (entity.User, error) {
+			now := time.Date(2026, 2, 23, 8, 0, 0, 0, time.UTC)
+			return entity.User{
+				ID:              42,
+				Name:            "User",
+				Email:           "user@example.com",
+				PasswordHash:    string(passwordHash),
+				EmailVerifiedAt: &now,
+			}, nil
+		},
+		saveRefreshTokenFn: func(_ context.Context, _ int64, _ string, _ time.Time, _ string, ip string) error {
+			capturedIP = ip
+			return nil
+		},
+	}
+
+	authService := service.NewAuthService(repo, strings.Repeat("a", 32), 15*time.Minute, 24*time.Hour, bcrypt.MinCost)
+	controller := NewAuthController(authService, false, 24*time.Hour, []*net.IPNet{trustedProxy})
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", strings.NewReader(`{"email":"user@example.com","password":"secret123"}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Forwarded-For", "203.0.113.10")
+	req.RemoteAddr = "10.1.2.3:4321"
+
+	rec := httptest.NewRecorder()
+	controller.Login(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+	if capturedIP != "203.0.113.10" {
+		t.Fatalf("expected forwarded IP, got %q", capturedIP)
+	}
+
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", strings.NewReader(`{"email":"user@example.com","password":"secret123"}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Forwarded-For", "198.51.100.9")
+	req.RemoteAddr = "198.18.0.1:4321"
+
+	rec = httptest.NewRecorder()
+	controller.Login(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+	if capturedIP != "198.18.0.1" {
+		t.Fatalf("expected direct peer IP, got %q", capturedIP)
+	}
+}
+
+func mustParseCIDR(t *testing.T, raw string) *net.IPNet {
+	t.Helper()
+
+	_, network, err := net.ParseCIDR(raw)
+	if err != nil {
+		t.Fatalf("parse cidr %q: %v", raw, err)
+	}
+	return network
 }
 
 func findCookie(t *testing.T, cookies []*http.Cookie, name string) *http.Cookie {

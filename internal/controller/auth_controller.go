@@ -20,15 +20,17 @@ type AuthController struct {
 	service             *service.AuthService
 	refreshCookieSecure bool
 	refreshCookieTTL    time.Duration
+	trustedProxies      []*net.IPNet
 }
 
 const refreshTokenCookieName = "refresh_token"
 
-func NewAuthController(service *service.AuthService, refreshCookieSecure bool, refreshCookieTTL time.Duration) *AuthController {
+func NewAuthController(service *service.AuthService, refreshCookieSecure bool, refreshCookieTTL time.Duration, trustedProxies []*net.IPNet) *AuthController {
 	return &AuthController{
 		service:             service,
 		refreshCookieSecure: refreshCookieSecure,
 		refreshCookieTTL:    refreshCookieTTL,
+		trustedProxies:      trustedProxies,
 	}
 }
 
@@ -62,7 +64,7 @@ func (h *AuthController) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := h.service.Login(r.Context(), input, r.UserAgent(), extractRequestIP(r))
+	resp, err := h.service.Login(r.Context(), input, r.UserAgent(), extractRequestIP(r, h.trustedProxies))
 	if err != nil {
 		switch {
 		case errors.Is(err, entity.ErrInvalidCredentials):
@@ -88,7 +90,7 @@ func (h *AuthController) Refresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := h.service.Refresh(r.Context(), refreshToken, r.UserAgent(), extractRequestIP(r))
+	resp, err := h.service.Refresh(r.Context(), refreshToken, r.UserAgent(), extractRequestIP(r, h.trustedProxies))
 	if err != nil {
 		switch {
 		case errors.Is(err, entity.ErrInvalidRefreshToken):
@@ -229,20 +231,8 @@ func (h *AuthController) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	utils.JSON(w, http.StatusOK, map[string]any{"message": "password has been reset"})
 }
 
-func extractRequestIP(r *http.Request) string {
-	if xff := strings.TrimSpace(r.Header.Get("X-Forwarded-For")); xff != "" {
-		parts := strings.Split(xff, ",")
-		if len(parts) > 0 {
-			if ip := strings.TrimSpace(parts[0]); ip != "" {
-				return ip
-			}
-		}
-	}
-	host, _, err := net.SplitHostPort(strings.TrimSpace(r.RemoteAddr))
-	if err != nil {
-		return strings.TrimSpace(r.RemoteAddr)
-	}
-	return host
+func extractRequestIP(r *http.Request, trustedProxies []*net.IPNet) string {
+	return utils.ClientIP(r, trustedProxies)
 }
 
 func refreshTokenFromRequest(r *http.Request) (string, error) {

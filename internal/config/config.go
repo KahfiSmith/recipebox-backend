@@ -3,6 +3,7 @@ package config
 import (
 	"bufio"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -24,6 +25,7 @@ type Config struct {
 	GracefulShutdownMs int
 	FrontendBaseURL    string
 	AuthDebugExposeTokens bool
+	TrustedProxyCIDRs  []*net.IPNet
 	SMTPHost           string
 	SMTPPort           int
 	SMTPUsername       string
@@ -58,6 +60,12 @@ func Load() (Config, error) {
 		AuthRateLimitPerMinute: getInt("AUTH_RATE_LIMIT_PER_MINUTE", 30),
 	}
 	cfg.AuthDebugExposeTokens = getBool("AUTH_DEBUG_EXPOSE_TOKENS", cfg.Env != "production")
+
+	trustedProxyCIDRs, err := parseTrustedProxyCIDRs(os.Getenv("TRUSTED_PROXY_CIDRS"))
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.TrustedProxyCIDRs = trustedProxyCIDRs
 
 	if cfg.DatabaseURL == "" {
 		return Config{}, fmt.Errorf("DATABASE_URL is required")
@@ -191,4 +199,45 @@ func loadDotEnvIfPresent() {
 
 		_ = os.Setenv(key, value)
 	}
+}
+
+func parseTrustedProxyCIDRs(raw string) ([]*net.IPNet, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nil, nil
+	}
+
+	parts := strings.Split(raw, ",")
+	networks := make([]*net.IPNet, 0, len(parts))
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+
+		if strings.Contains(part, "/") {
+			_, network, err := net.ParseCIDR(part)
+			if err != nil {
+				return nil, fmt.Errorf("invalid TRUSTED_PROXY_CIDRS entry %q", part)
+			}
+			networks = append(networks, network)
+			continue
+		}
+
+		ip := net.ParseIP(part)
+		if ip == nil {
+			return nil, fmt.Errorf("invalid TRUSTED_PROXY_CIDRS entry %q", part)
+		}
+
+		bits := 32
+		if ip.To4() == nil {
+			bits = 128
+		}
+		networks = append(networks, &net.IPNet{
+			IP:   ip,
+			Mask: net.CIDRMask(bits, bits),
+		})
+	}
+
+	return networks, nil
 }
