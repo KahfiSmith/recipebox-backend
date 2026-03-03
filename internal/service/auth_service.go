@@ -235,9 +235,7 @@ func (s *AuthService) RequestEmailVerification(ctx context.Context, input dto.Em
 		return dto.OneTimeTokenResponse{}, err
 	}
 
-	if err := s.sendEmailVerification(ctx, user.Email, rawToken, expiresAt); err != nil {
-		return dto.OneTimeTokenResponse{}, err
-	}
+	s.trySendEmailVerification(ctx, user.Email, rawToken, expiresAt)
 	if !s.exposeTokens {
 		rawToken = ""
 	}
@@ -284,9 +282,7 @@ func (s *AuthService) RequestPasswordReset(ctx context.Context, input dto.EmailR
 		return dto.OneTimeTokenResponse{}, err
 	}
 
-	if err := s.sendPasswordReset(ctx, user.Email, rawToken, expiresAt); err != nil {
-		return dto.OneTimeTokenResponse{}, err
-	}
+	s.trySendPasswordReset(ctx, user.Email, rawToken, expiresAt)
 	if !s.exposeTokens {
 		rawToken = ""
 	}
@@ -520,6 +516,18 @@ func (s *AuthService) sendEmail(ctx context.Context, to, subject, body string) e
 		return errors.New("email sender is not configured")
 	}
 	return s.emailSender.Send(ctx, to, subject, body)
+}
+
+func (s *AuthService) trySendEmailVerification(ctx context.Context, to, token string, expiresAt time.Time) {
+	if err := s.sendEmailVerification(ctx, to, token, expiresAt); err != nil {
+		log.Printf("auth: failed to send email verification to %s: %v", to, err)
+	}
+}
+
+func (s *AuthService) trySendPasswordReset(ctx context.Context, to, token string, expiresAt time.Time) {
+	if err := s.sendPasswordReset(ctx, to, token, expiresAt); err != nil {
+		log.Printf("auth: failed to send password reset to %s: %v", to, err)
+	}
 }
 
 func (s *AuthService) buildActionLink(path, token string) string {

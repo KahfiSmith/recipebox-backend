@@ -13,6 +13,17 @@ import (
 	"recipebox-backend-go/internal/entity"
 )
 
+type stubEmailSender struct {
+	sendFn func(ctx context.Context, to, subject, body string) error
+}
+
+func (s stubEmailSender) Send(ctx context.Context, to, subject, body string) error {
+	if s.sendFn == nil {
+		return nil
+	}
+	return s.sendFn(ctx, to, subject, body)
+}
+
 type mockAuthRepo struct {
 	createUserFn                     func(ctx context.Context, name, email, passwordHash string) (entity.User, error)
 	findUserByEmailFn                func(ctx context.Context, email string) (entity.User, error)
@@ -524,6 +535,72 @@ func TestRequestEmailVerificationSuccess(t *testing.T) {
 	}
 	if savedHash != hashToken(resp.Token) {
 		t.Fatalf("stored hash mismatch")
+	}
+}
+
+func TestRequestEmailVerificationSucceedsWhenEmailSendFails(t *testing.T) {
+	t.Parallel()
+
+	repo := mockAuthRepo{
+		findUserByEmailFn: func(_ context.Context, email string) (entity.User, error) {
+			return entity.User{ID: 5, Email: email}, nil
+		},
+		saveEmailVerificationTokenFn: func(_ context.Context, _ int64, tokenHash string, _ time.Time) error {
+			if tokenHash == "" {
+				t.Fatalf("expected token hash")
+			}
+			return nil
+		},
+	}
+	svc := NewAuthService(repo, strings.Repeat("g", 32), 15*time.Minute, 24*time.Hour, 10)
+	svc.ConfigureEmailDelivery(stubEmailSender{
+		sendFn: func(_ context.Context, _, _, _ string) error {
+			return errors.New("smtp down")
+		},
+	}, "", false)
+
+	resp, err := svc.RequestEmailVerification(context.Background(), dto.EmailRequest{Email: "user@example.com"})
+	if err != nil {
+		t.Fatalf("RequestEmailVerification() error = %v", err)
+	}
+	if resp.Token != "" {
+		t.Fatalf("expected token to stay hidden when exposure is disabled")
+	}
+	if resp.ExpiresAt.IsZero() {
+		t.Fatalf("expected expiry timestamp")
+	}
+}
+
+func TestRequestPasswordResetSucceedsWhenEmailSendFails(t *testing.T) {
+	t.Parallel()
+
+	repo := mockAuthRepo{
+		findUserByEmailFn: func(_ context.Context, email string) (entity.User, error) {
+			return entity.User{ID: 9, Email: email}, nil
+		},
+		savePasswordResetTokenFn: func(_ context.Context, _ int64, tokenHash string, _ time.Time) error {
+			if tokenHash == "" {
+				t.Fatalf("expected token hash")
+			}
+			return nil
+		},
+	}
+	svc := NewAuthService(repo, strings.Repeat("g", 32), 15*time.Minute, 24*time.Hour, 10)
+	svc.ConfigureEmailDelivery(stubEmailSender{
+		sendFn: func(_ context.Context, _, _, _ string) error {
+			return errors.New("smtp down")
+		},
+	}, "", false)
+
+	resp, err := svc.RequestPasswordReset(context.Background(), dto.EmailRequest{Email: "user@example.com"})
+	if err != nil {
+		t.Fatalf("RequestPasswordReset() error = %v", err)
+	}
+	if resp.Token != "" {
+		t.Fatalf("expected token to stay hidden when exposure is disabled")
+	}
+	if resp.ExpiresAt.IsZero() {
+		t.Fatalf("expected expiry timestamp")
 	}
 }
 
