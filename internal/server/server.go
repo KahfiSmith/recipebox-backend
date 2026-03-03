@@ -43,10 +43,10 @@ func NewServer(cfg config.Config, database *gorm.DB) (*Server, error) {
 		}
 		authService.ConfigureEmailDelivery(nil, cfg.FrontendBaseURL, cfg.AuthDebugExposeTokens)
 	}
-	authController := controller.NewAuthController(authService, cfg.Env == "production", cfg.RefreshTokenTTL)
+	authController := controller.NewAuthController(authService, cfg.Env == "production", cfg.RefreshTokenTTL, cfg.TrustedProxyCIDRs)
 
 	authRateLimitStore := middleware.NewRedisAuthRateLimitStore(redisClient)
-	router := NewRouter(authController, authService, authRateLimitStore, cfg.AuthRateLimitPerMinute)
+	router := NewRouter(authController, authService, authRateLimitStore, cfg.AuthRateLimitPerMinute, cfg.TrustedProxyCIDRs)
 	httpServer := &http.Server{
 		Addr:         cfg.HTTPAddr,
 		Handler:      router,

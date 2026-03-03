@@ -1,6 +1,7 @@
 package server
 
 import (
+	"net"
 	"net/http"
 	"time"
 
@@ -14,11 +15,11 @@ import (
 	"recipebox-backend-go/internal/utils"
 )
 
-func NewRouter(authController *controller.AuthController, authService *service.AuthService, authRateLimitStore middleware.AuthRateLimitStore, authRateLimitPerMinute int) http.Handler {
+func NewRouter(authController *controller.AuthController, authService *service.AuthService, authRateLimitStore middleware.AuthRateLimitStore, authRateLimitPerMinute int, trustedProxies []*net.IPNet) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(chimw.RequestID)
-	r.Use(chimw.RealIP)
+	r.Use(middleware.RealIP(trustedProxies))
 	r.Use(chimw.Recoverer)
 	r.Use(chimw.Logger)
 	r.Use(chimw.Timeout(30 * time.Second))
@@ -28,7 +29,7 @@ func NewRouter(authController *controller.AuthController, authService *service.A
 	})
 
 	r.Route("/api/v1", func(r chi.Router) {
-		routes.RegisterAll(r, authController, authService, authRateLimitStore, authRateLimitPerMinute)
+		routes.RegisterAll(r, authController, authService, authRateLimitStore, authRateLimitPerMinute, trustedProxies)
 	})
 
 	return r
