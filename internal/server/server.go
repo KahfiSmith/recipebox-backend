@@ -10,6 +10,7 @@ import (
 
 	"recipebox-backend-go/internal/config"
 	"recipebox-backend-go/internal/controller"
+	"recipebox-backend-go/internal/db"
 	"recipebox-backend-go/internal/middleware"
 	"recipebox-backend-go/internal/notification"
 	"recipebox-backend-go/internal/redisx"
@@ -24,6 +25,10 @@ type Server struct {
 }
 
 func NewServer(cfg config.Config, database *gorm.DB) (*Server, error) {
+	if err := db.AutoMigrate(context.Background(), database); err != nil {
+		return nil, err
+	}
+
 	redisClient := redisx.NewClient(cfg.RedisAddr, cfg.RedisPassword, cfg.RedisDB)
 	pingCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -33,7 +38,9 @@ func NewServer(cfg config.Config, database *gorm.DB) (*Server, error) {
 	}
 
 	authRepo := repository.NewAuthGormRepository(database)
+	recipeBoxRepo := repository.NewRecipeBoxGormRepository(database)
 	authService := service.NewAuthService(authRepo, cfg.JWTSecret, cfg.AccessTokenTTL, cfg.RefreshTokenTTL, cfg.BcryptCost)
+	dashboardService := service.NewDashboardService(recipeBoxRepo)
 	if cfg.SMTPHost != "" {
 		sender := notification.NewSMTPSender(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUsername, cfg.SMTPPassword, cfg.SMTPFromEmail, cfg.SMTPFromName)
 		authService.ConfigureEmailDelivery(sender, cfg.FrontendBaseURL, cfg.AuthDebugExposeTokens)
@@ -44,9 +51,10 @@ func NewServer(cfg config.Config, database *gorm.DB) (*Server, error) {
 		authService.ConfigureEmailDelivery(nil, cfg.FrontendBaseURL, cfg.AuthDebugExposeTokens)
 	}
 	authController := controller.NewAuthController(authService, cfg.Env == "production", cfg.RefreshTokenTTL, cfg.TrustedProxyCIDRs)
+	dashboardController := controller.NewDashboardController(dashboardService)
 
 	authRateLimitStore := middleware.NewRedisAuthRateLimitStore(redisClient)
-	router := NewRouter(authController, authService, authRateLimitStore, cfg.AuthRateLimitPerMinute, cfg.TrustedProxyCIDRs)
+	router := NewRouter(authController, dashboardController, authService, authRateLimitStore, cfg.AuthRateLimitPerMinute, cfg.TrustedProxyCIDRs)
 	httpServer := &http.Server{
 		Addr:         cfg.HTTPAddr,
 		Handler:      router,
