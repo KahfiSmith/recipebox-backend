@@ -1,2 +1,999 @@
-# Compatibility alias.
-# Canonical OpenAPI source: /openapi.yaml
+basePath: /
+definitions:
+  recipebox-backend-go_internal_dto.AuthEnvelope:
+    properties:
+      data:
+        $ref: '#/definitions/recipebox-backend-go_internal_dto.AuthResponse'
+    type: object
+  recipebox-backend-go_internal_dto.AuthResponse:
+    properties:
+      tokens:
+        $ref: '#/definitions/recipebox-backend-go_internal_dto.TokenPair'
+      user:
+        $ref: '#/definitions/recipebox-backend-go_internal_models.User'
+    type: object
+  recipebox-backend-go_internal_dto.DashboardEnvelope:
+    properties:
+      data:
+        $ref: '#/definitions/recipebox-backend-go_internal_dto.DashboardResponse'
+    type: object
+  recipebox-backend-go_internal_dto.DashboardMealPlan:
+    properties:
+      day:
+        type: string
+      id:
+        type: integer
+      ingredients:
+        items:
+          type: string
+        type: array
+      mealName:
+        type: string
+      servings:
+        type: integer
+    type: object
+  recipebox-backend-go_internal_dto.DashboardRecipe:
+    properties:
+      category:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      prepTime:
+        type: integer
+      updatedAt:
+        type: string
+    type: object
+  recipebox-backend-go_internal_dto.DashboardResponse:
+    properties:
+      mealPlans:
+        items:
+          $ref: '#/definitions/recipebox-backend-go_internal_dto.DashboardMealPlan'
+        type: array
+      recipes:
+        items:
+          $ref: '#/definitions/recipebox-backend-go_internal_dto.DashboardRecipe'
+        type: array
+      shoppingItems:
+        items:
+          $ref: '#/definitions/recipebox-backend-go_internal_dto.DashboardShoppingItem'
+        type: array
+      summary:
+        $ref: '#/definitions/recipebox-backend-go_internal_dto.DashboardSummary'
+    type: object
+  recipebox-backend-go_internal_dto.DashboardShoppingItem:
+    properties:
+      checked:
+        type: boolean
+      id:
+        type: integer
+      menuName:
+        type: string
+      name:
+        type: string
+      qty:
+        type: string
+    type: object
+  recipebox-backend-go_internal_dto.DashboardSummary:
+    properties:
+      pendingShoppingItemCount:
+        type: integer
+      recipeCount:
+        type: integer
+      upcomingMealPlanCount:
+        type: integer
+    type: object
+  recipebox-backend-go_internal_dto.EmailRequest:
+    properties:
+      email:
+        type: string
+    type: object
+  recipebox-backend-go_internal_dto.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  recipebox-backend-go_internal_dto.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  recipebox-backend-go_internal_dto.MealPlanEnvelope:
+    properties:
+      data:
+        $ref: '#/definitions/recipebox-backend-go_internal_dto.DashboardMealPlan'
+    type: object
+  recipebox-backend-go_internal_dto.MealPlansEnvelope:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/recipebox-backend-go_internal_dto.DashboardMealPlan'
+        type: array
+    type: object
+  recipebox-backend-go_internal_dto.MessageResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  recipebox-backend-go_internal_dto.OneTimeTokenEnvelope:
+    properties:
+      data:
+        $ref: '#/definitions/recipebox-backend-go_internal_dto.OneTimeTokenResponse'
+      message:
+        type: string
+    type: object
+  recipebox-backend-go_internal_dto.OneTimeTokenResponse:
+    properties:
+      expiresAt:
+        type: string
+      token:
+        type: string
+    type: object
+  recipebox-backend-go_internal_dto.RecipeEnvelope:
+    properties:
+      data:
+        $ref: '#/definitions/recipebox-backend-go_internal_dto.DashboardRecipe'
+    type: object
+  recipebox-backend-go_internal_dto.RecipesEnvelope:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/recipebox-backend-go_internal_dto.DashboardRecipe'
+        type: array
+    type: object
+  recipebox-backend-go_internal_dto.RefreshRequest:
+    properties:
+      refreshToken:
+        type: string
+    type: object
+  recipebox-backend-go_internal_dto.RegisterEnvelope:
+    properties:
+      data:
+        $ref: '#/definitions/recipebox-backend-go_internal_dto.RegisterResponse'
+    type: object
+  recipebox-backend-go_internal_dto.RegisterRequest:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        type: string
+    type: object
+  recipebox-backend-go_internal_dto.RegisterResponse:
+    properties:
+      user:
+        $ref: '#/definitions/recipebox-backend-go_internal_models.User'
+    type: object
+  recipebox-backend-go_internal_dto.ResetPasswordRequest:
+    properties:
+      newPassword:
+        type: string
+      token:
+        type: string
+    type: object
+  recipebox-backend-go_internal_dto.ShoppingItemEnvelope:
+    properties:
+      data:
+        $ref: '#/definitions/recipebox-backend-go_internal_dto.DashboardShoppingItem'
+    type: object
+  recipebox-backend-go_internal_dto.ShoppingItemsEnvelope:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/recipebox-backend-go_internal_dto.DashboardShoppingItem'
+        type: array
+    type: object
+  recipebox-backend-go_internal_dto.TokenEnvelope:
+    properties:
+      data:
+        $ref: '#/definitions/recipebox-backend-go_internal_dto.TokenPair'
+    type: object
+  recipebox-backend-go_internal_dto.TokenPair:
+    properties:
+      accessToken:
+        type: string
+      accessTokenExpiresAt:
+        type: string
+      refreshToken:
+        type: string
+      refreshTokenExpiresAt:
+        type: string
+    type: object
+  recipebox-backend-go_internal_dto.UpsertMealPlanRequest:
+    properties:
+      day:
+        type: string
+      ingredients:
+        items:
+          type: string
+        type: array
+      mealName:
+        type: string
+      servings:
+        type: integer
+    type: object
+  recipebox-backend-go_internal_dto.UpsertRecipeRequest:
+    properties:
+      category:
+        type: string
+      name:
+        type: string
+      prepTime:
+        type: integer
+    type: object
+  recipebox-backend-go_internal_dto.UpsertShoppingItemRequest:
+    properties:
+      checked:
+        type: boolean
+      menuName:
+        type: string
+      name:
+        type: string
+      qty:
+        type: string
+    type: object
+  recipebox-backend-go_internal_dto.UserEnvelope:
+    properties:
+      data:
+        $ref: '#/definitions/recipebox-backend-go_internal_models.User'
+    type: object
+  recipebox-backend-go_internal_dto.VerifyEmailRequest:
+    properties:
+      token:
+        type: string
+    type: object
+  recipebox-backend-go_internal_models.User:
+    properties:
+      createdAt:
+        type: string
+      email:
+        type: string
+      emailVerifiedAt:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: API for RecipeBox backend services.
+  title: RecipeBox Backend API
+  version: "1.0"
+paths:
+  /api/v1/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Login with email and password.
+      parameters:
+      - description: Login payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/recipebox-backend-go_internal_dto.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.AuthEnvelope'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+      summary: Login user
+      tags:
+      - Auth
+  /api/v1/auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: Revoke refresh token and clear cookie.
+      parameters:
+      - description: Refresh payload
+        in: body
+        name: payload
+        schema:
+          $ref: '#/definitions/recipebox-backend-go_internal_dto.RefreshRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+      summary: Logout
+      tags:
+      - Auth
+  /api/v1/auth/me:
+    get:
+      description: Return current authenticated user profile.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.UserEnvelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get current user profile
+      tags:
+      - Auth
+  /api/v1/auth/password/forgot:
+    post:
+      consumes:
+      - application/json
+      description: Request reset password flow.
+      parameters:
+      - description: Email payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/recipebox-backend-go_internal_dto.EmailRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.OneTimeTokenEnvelope'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+      summary: Request password reset token
+      tags:
+      - Auth
+  /api/v1/auth/password/reset:
+    post:
+      consumes:
+      - application/json
+      description: Reset password using one-time token.
+      parameters:
+      - description: Reset password payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/recipebox-backend-go_internal_dto.ResetPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+      summary: Reset password
+      tags:
+      - Auth
+  /api/v1/auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Refresh access token using refresh token (cookie or request body).
+      parameters:
+      - description: Refresh payload
+        in: body
+        name: payload
+        schema:
+          $ref: '#/definitions/recipebox-backend-go_internal_dto.RefreshRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.TokenEnvelope'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+      summary: Refresh access token
+      tags:
+      - Auth
+  /api/v1/auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user account.
+      parameters:
+      - description: Register payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/recipebox-backend-go_internal_dto.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.RegisterEnvelope'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+      summary: Register user
+      tags:
+      - Auth
+  /api/v1/auth/verify-email/confirm:
+    post:
+      consumes:
+      - application/json
+      description: Verify email using one-time token.
+      parameters:
+      - description: Verify email payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/recipebox-backend-go_internal_dto.VerifyEmailRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+      summary: Confirm email verification
+      tags:
+      - Auth
+  /api/v1/auth/verify-email/request:
+    post:
+      consumes:
+      - application/json
+      description: Request email verification flow.
+      parameters:
+      - description: Email payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/recipebox-backend-go_internal_dto.EmailRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.OneTimeTokenEnvelope'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+      summary: Request email verification token
+      tags:
+      - Auth
+  /api/v1/dashboard:
+    get:
+      description: Return recipes, meal plans, shopping items and summary in one payload.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.DashboardEnvelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get dashboard overview
+      tags:
+      - Dashboard
+  /api/v1/meal-plans:
+    get:
+      description: Return meal plans list used by dashboard/meal-plan page.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.MealPlansEnvelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List meal plans
+      tags:
+      - Meal Plans
+    post:
+      consumes:
+      - application/json
+      description: Create a meal plan menu item.
+      parameters:
+      - description: Meal plan payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/recipebox-backend-go_internal_dto.UpsertMealPlanRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.MealPlanEnvelope'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create meal plan
+      tags:
+      - Meal Plans
+  /api/v1/meal-plans/{id}:
+    delete:
+      description: Delete a meal plan menu item by ID.
+      parameters:
+      - description: Meal Plan ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete meal plan
+      tags:
+      - Meal Plans
+    put:
+      consumes:
+      - application/json
+      description: Update a meal plan menu item by ID.
+      parameters:
+      - description: Meal Plan ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Meal plan payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/recipebox-backend-go_internal_dto.UpsertMealPlanRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.MealPlanEnvelope'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update meal plan
+      tags:
+      - Meal Plans
+  /api/v1/recipes:
+    get:
+      description: Return recipes list used by dashboard/recipes page.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.RecipesEnvelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List recipe cards
+      tags:
+      - Recipes
+    post:
+      consumes:
+      - application/json
+      description: Create a recipe menu item.
+      parameters:
+      - description: Recipe payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/recipebox-backend-go_internal_dto.UpsertRecipeRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.RecipeEnvelope'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create recipe
+      tags:
+      - Recipes
+  /api/v1/recipes/{id}:
+    delete:
+      description: Delete a recipe menu item by ID.
+      parameters:
+      - description: Recipe ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete recipe
+      tags:
+      - Recipes
+    put:
+      consumes:
+      - application/json
+      description: Update a recipe menu item by ID.
+      parameters:
+      - description: Recipe ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Recipe payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/recipebox-backend-go_internal_dto.UpsertRecipeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.RecipeEnvelope'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update recipe
+      tags:
+      - Recipes
+  /api/v1/shopping-items:
+    get:
+      description: Return shopping items list used by dashboard/shopping page.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ShoppingItemsEnvelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List shopping items
+      tags:
+      - Shopping Items
+    post:
+      consumes:
+      - application/json
+      description: Create a shopping item menu entry.
+      parameters:
+      - description: Shopping item payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/recipebox-backend-go_internal_dto.UpsertShoppingItemRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ShoppingItemEnvelope'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create shopping item
+      tags:
+      - Shopping Items
+  /api/v1/shopping-items/{id}:
+    delete:
+      description: Delete a shopping item menu entry by ID.
+      parameters:
+      - description: Shopping Item ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete shopping item
+      tags:
+      - Shopping Items
+    put:
+      consumes:
+      - application/json
+      description: Update a shopping item menu entry by ID.
+      parameters:
+      - description: Shopping Item ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Shopping item payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/recipebox-backend-go_internal_dto.UpsertShoppingItemRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ShoppingItemEnvelope'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update shopping item
+      tags:
+      - Shopping Items
+schemes:
+- http
+- https
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

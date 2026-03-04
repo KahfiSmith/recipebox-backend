@@ -35,7 +35,16 @@ Generate via Swaggo:
 - Dashboard:
   - `GET /api/v1/dashboard`
   - `GET /api/v1/recipes`
+  - `POST /api/v1/recipes`
+  - `PUT /api/v1/recipes/{id}`
+  - `DELETE /api/v1/recipes/{id}`
   - `GET /api/v1/meal-plans`
+  - `POST /api/v1/meal-plans`
+  - `PUT /api/v1/meal-plans/{id}`
+  - `DELETE /api/v1/meal-plans/{id}`
   - `GET /api/v1/shopping-items`
+  - `POST /api/v1/shopping-items`
+  - `PUT /api/v1/shopping-items/{id}`
+  - `DELETE /api/v1/shopping-items/{id}`
 
 Untuk schema request/response detail, selalu rujuk ke `openapi.yaml`.
