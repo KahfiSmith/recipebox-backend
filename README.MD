@@ -1,172 +1,58 @@
 # RecipeBox Backend API (Go)
 
-Backend REST API untuk RecipeBox, aplikasi web untuk mengelola resep, mencari resep berdasarkan bahan, membuat shopping list otomatis, dan menyusun meal plan.
+Backend REST API untuk RecipeBox.
 
-Backend ini dirancang API-first agar mudah diintegrasikan dengan frontend terpisah.
+## Dokumentasi
 
-## Gambaran Umum
-
-RecipeBox Backend menyediakan API untuk:
-
-- CRUD resep masakan
-- Pencarian resep berdasarkan bahan yang tersedia
-- Generate shopping list dari resep terpilih
-- Manajemen meal plan (kalender harian atau mingguan)
-- Autentikasi user (register, login, refresh token, logout, profile)
-
-## Tech Stack
-
-- Language: Go
-- HTTP Router: chi
-- Database: PostgreSQL
-- Cache / rate limit store: Redis
-- ORM/Query: GORM
-- Migration: golang-migrate
-- Config: environment variables (.env)
-- API Style: REST JSON
-
-## Struktur Proyek
+Semua dokumentasi teknis dipusatkan di folder `docs` agar tidak duplikatif:
 
 ```text
-.
-├── cmd/
-│   └── api/                 # entrypoint aplikasi
-│       └── main.go
-├── .env.example             # contoh konfigurasi
-├── internal/
-│   ├── config/                # load env dan config
-│   │   └── config.go
-│   ├── db/                    # database connection
-│   │   └── postgres.go
-│   ├── server/                # bootstrap router + server
-│   │   ├── router.go
-│   │   └── server.go
-│   ├── controller/            # HTTP handler
-│   │   └── auth_controller.go
-│   ├── routes/                # route registration
-│   │   ├── routes.go
-│   │   └── auth_routes.go
-│   ├── dto/                   # request/response payload
-│   │   └── auth_dto.go
-│   ├── entity/                # domain/entity model
-│   │   └── auth.go
-│   ├── repository/            # data access
-│   │   ├── auth_repo.go
-│   │   └── auth_repo_gorm.go
-│   ├── service/               # business logic
-│   │   └── auth_service.go
-│   ├── middleware/            # middleware lintas route
-│   │   └── jwt.go
-│   └── utils/                 # helper bersama
-│       └── response.go
-├── migrations/              # database migrations
-├── scripts/                 # helper scripts
-├── go.mod
-└── README.MD
+docs/
+├── swagger.yaml
+├── swagger.json
+├── openapi.yaml (canonical: /openapi.yaml)
+├── postman_collection.json
+├── api.md
+└── architecture.md
 ```
 
-## Alur Layering
+Catatan:
+- Sumber kontrak API utama adalah `/openapi.yaml`.
+- `docs/swagger.yaml` dan `docs/swagger.json` disediakan sebagai alias kompatibilitas.
 
-- `controller`: HTTP request/response handling.
-- `service`: business logic.
-- `repository`: akses data (GORM/Postgres).
-- `entity`/`dto`: model domain dan payload API.
+## Swagger (Swaggo)
 
-## Menjalankan Lokal (draft)
+Install CLI:
 
-1. Salin `.env.example` menjadi `.env`
+- `go install github.com/swaggo/swag/cmd/swag@latest`
+
+Generate dokumen dari anotasi code:
+
+- `./scripts/swagger-generate.sh`
+
+Hasil generate akan berada di folder `docs/` dan bisa di-import ke Postman.
+
+## Status Singkat
+
+- Stack: Go + Chi + GORM + PostgreSQL + Redis
+- Layering: controller, service, repository, models, dto
+
+## Menjalankan Lokal
+
+1. Copy `.env.example` ke `.env`
 2. Jalankan Redis:
-
-```bash
-docker compose up -d redis
-```
-
-3. Jalankan migration database
+   - `docker compose up -d redis`
+3. Jalankan migration SQL (opsional sesuai kebutuhan environment):
+   - `./scripts/migrate-up.sh`
 4. Jalankan server:
+   - `go run ./cmd/api`
 
-```bash
-go run ./cmd/api
-```
+## Struktur Inti
 
-## Endpoint Auth
-
-- `POST /api/v1/auth/register`
-- `POST /api/v1/auth/login`
-- `POST /api/v1/auth/verify-email/request`
-- `POST /api/v1/auth/verify-email/confirm`
-- `POST /api/v1/auth/password/forgot`
-- `POST /api/v1/auth/password/reset`
-- `POST /api/v1/auth/refresh`
-- `POST /api/v1/auth/logout`
-- `GET /api/v1/auth/me` (Bearer access token)
-
-## Endpoint Dashboard
-
-- `GET /api/v1/dashboard` (Bearer access token)
-- `GET /api/v1/recipes` (Bearer access token)
-- `GET /api/v1/meal-plans` (Bearer access token)
-- `GET /api/v1/shopping-items` (Bearer access token)
-
-Response dashboard saat ini menggabungkan:
-- ringkasan jumlah resep
-- daftar resep terbaru untuk kartu dashboard
-- meal plan terdekat
-- shopping items terbaru
-
-Endpoint ini disiapkan untuk kebutuhan frontend dashboard agar cukup melakukan satu request untuk data overview. Untuk halaman menu terpisah, backend juga menyediakan endpoint list per modul (`recipes`, `meal-plans`, `shopping-items`) dengan payload preview yang konsisten dengan data dashboard. Saat ini payload masih berupa data overview/listing, belum CRUD penuh untuk modul recipes, meal plan, atau shopping list.
-
-Schema database untuk modul tersebut sudah disiapkan lewat migration `000004_create_recipe_tables`, yang menambahkan tabel:
-- `recipes`
-- `meal_plans`
-- `shopping_items`
-
-Field utama tabel `recipes` sekarang disejajarkan dengan form frontend lewat auto-migration GORM saat server start, sehingga kolom recipe menjadi:
-- `name`
-- `category`
-- `prep_time`
-
-Catatan auth:
-- Endpoint sensitif (`register`, `login`, `refresh`, `verify-email/request`, `password/forgot`) memakai rate limit per-IP (`AUTH_RATE_LIMIT_PER_MINUTE`) yang disimpan di Redis.
-- Email verifikasi dan reset password dikirim via SMTP (`SMTP_*`).
-- Saat `AUTH_DEBUG_EXPOSE_TOKENS=true`, token one-time masih dikembalikan di response (mode lokal/debug).
-- Saat `AUTH_DEBUG_EXPOSE_TOKENS=false`, `SMTP_HOST` wajib terisi.
-
-Panduan testing Postman:
-- Lihat `docs/postman-auth-testing.md`
-
-Contoh base URL untuk frontend:
-
-- `http://localhost:8080/api/v1`
-
-## Menjalankan Redis (Docker Compose)
-
-```bash
-docker compose up -d redis
-docker compose ps
-```
-
-Untuk berhenti:
-
-```bash
-docker compose down
-```
-
-Untuk mengecek counter rate limit masuk ke Redis:
-
-```bash
-docker exec -it recipebox-redis redis-cli KEYS 'rl:auth:*'
-docker exec -it recipebox-redis redis-cli GET 'rl:auth:127.0.0.1:/api/v1/auth/login'
-docker exec -it recipebox-redis redis-cli TTL 'rl:auth:127.0.0.1:/api/v1/auth/login'
-```
-
-## Migration Helpers
-
-Gunakan helper script berikut:
-
-```bash
-./scripts/migrate-up.sh
-./scripts/migrate-down.sh 1
-./scripts/migrate-status.sh
-```
-
-Script membaca `DATABASE_URL` dari `.env`.
+- `cmd/api`: entrypoint
+- `internal/controller`: HTTP handlers
+- `internal/service`: business logic
+- `internal/repository`: data access
+- `internal/models`: data model
+- `internal/dto`: request/response payload
+- `internal/db`: database bootstrap + automigrate helper
