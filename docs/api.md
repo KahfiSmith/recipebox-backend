@@ -1,27 +1,23 @@
 # API Reference
 
-Dokumen API utama ada di:
-- `/openapi.yaml` (canonical source of truth)
+Primary generated API artifacts:
+- `docs/swagger.yaml`
+- `docs/swagger.json`
 
-Alias kompatibilitas:
-- `/docs/swagger.yaml`
-- `/docs/swagger.json`
+Postman import:
+- Import `docs/swagger.json`
 
-Postman:
-- `/docs/postman_collection.json`
-
-Generate via Swaggo:
-- Install: `go install github.com/swaggo/swag/cmd/swag@latest`
-- Run: `./scripts/swagger-generate.sh`
+Generate Swagger from annotations:
+- Install CLI: `go install github.com/swaggo/swag/cmd/swag@latest`
+- Run: `bash scripts/swagger-generate.sh`
 
 ## Base URL
-
 - Local: `http://localhost:8080`
 - API prefix: `/api/v1`
 
 ## Main Endpoint Groups
-
-- System: `GET /healthz`
+- System:
+  - `GET /healthz`
 - Auth:
   - `POST /api/v1/auth/register`
   - `POST /api/v1/auth/login`
@@ -32,7 +28,7 @@ Generate via Swaggo:
   - `POST /api/v1/auth/refresh`
   - `POST /api/v1/auth/logout`
   - `GET /api/v1/auth/me`
-- Dashboard:
+- Dashboard / Menus:
   - `GET /api/v1/dashboard`
   - `GET /api/v1/recipes`
   - `POST /api/v1/recipes`
@@ -47,4 +43,4 @@ Generate via Swaggo:
   - `PUT /api/v1/shopping-items/{id}`
   - `DELETE /api/v1/shopping-items/{id}`
 
-Untuk schema request/response detail, selalu rujuk ke `openapi.yaml`.
+For full request/response schemas, use generated Swagger files.
