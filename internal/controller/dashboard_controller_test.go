@@ -184,14 +184,95 @@ func (r dashboardTestRepository) ListRecipes(_ context.Context, _ int64) ([]mode
 	return out, nil
 }
 
+func TestDashboardCreateRecipeReturnsCreated(t *testing.T) {
+	t.Parallel()
+
+	secret := strings.Repeat("a", 32)
+	dashboardService := service.NewDashboardService(newDashboardTestRepository())
+	dashboardController := NewDashboardController(dashboardService)
+	authService := service.NewAuthService(nil, secret, 15*time.Minute, 24*time.Hour, 10)
+	handler := middleware.AuthJWT(authService)(http.HandlerFunc(dashboardController.CreateRecipe))
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/recipes", strings.NewReader(`{"name":"Soto Ayam","category":"Lunch","prepTime":25}`))
+	req.Header.Set("Authorization", "Bearer "+makeDashboardToken(t, secret, 42))
+	req.Header.Set("Content-Type", "application/json")
+
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d", rec.Code)
+	}
+
+	var payload struct {
+		Data struct {
+			Name string `json:"name"`
+		} `json:"data"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if payload.Data.Name != "Soto Ayam" {
+		t.Fatalf("expected created recipe name to match")
+	}
+}
+
+func (r dashboardTestRepository) CreateRecipe(_ context.Context, userID int64, recipe models.Recipe) (models.Recipe, error) {
+	recipe.ID = 1001
+	recipe.UserID = userID
+	return recipe, nil
+}
+
+func (r dashboardTestRepository) UpdateRecipe(_ context.Context, userID, recipeID int64, recipe models.Recipe) (models.Recipe, error) {
+	recipe.ID = recipeID
+	recipe.UserID = userID
+	return recipe, nil
+}
+
+func (r dashboardTestRepository) DeleteRecipe(_ context.Context, _, _ int64) error {
+	return nil
+}
+
 func (r dashboardTestRepository) ListMealPlans(_ context.Context, _ int64) ([]models.MealPlan, error) {
 	out := make([]models.MealPlan, len(r.mealPlans))
 	copy(out, r.mealPlans)
 	return out, nil
 }
 
+func (r dashboardTestRepository) CreateMealPlan(_ context.Context, userID int64, mealPlan models.MealPlan) (models.MealPlan, error) {
+	mealPlan.ID = 2001
+	mealPlan.UserID = userID
+	return mealPlan, nil
+}
+
+func (r dashboardTestRepository) UpdateMealPlan(_ context.Context, userID, mealPlanID int64, mealPlan models.MealPlan) (models.MealPlan, error) {
+	mealPlan.ID = mealPlanID
+	mealPlan.UserID = userID
+	return mealPlan, nil
+}
+
+func (r dashboardTestRepository) DeleteMealPlan(_ context.Context, _, _ int64) error {
+	return nil
+}
+
 func (r dashboardTestRepository) ListShoppingItems(_ context.Context, _ int64) ([]models.ShoppingItem, error) {
 	out := make([]models.ShoppingItem, len(r.shoppingItems))
 	copy(out, r.shoppingItems)
 	return out, nil
+}
+
+func (r dashboardTestRepository) CreateShoppingItem(_ context.Context, userID int64, item models.ShoppingItem) (models.ShoppingItem, error) {
+	item.ID = 3001
+	item.UserID = userID
+	return item, nil
+}
+
+func (r dashboardTestRepository) UpdateShoppingItem(_ context.Context, userID, itemID int64, item models.ShoppingItem) (models.ShoppingItem, error) {
+	item.ID = itemID
+	item.UserID = userID
+	return item, nil
+}
+
+func (r dashboardTestRepository) DeleteShoppingItem(_ context.Context, _, _ int64) error {
+	return nil
 }
