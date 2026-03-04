@@ -1,7 +1,7 @@
 package dto
 
 import (
-	"recipebox-backend-go/internal/entity"
+	"recipebox-backend-go/internal/models"
 	"time"
 )
 
@@ -41,12 +41,12 @@ type TokenPair struct {
 }
 
 type AuthResponse struct {
-	User   entity.User `json:"user"`
+	User   models.User `json:"user"`
 	Tokens TokenPair   `json:"tokens"`
 }
 
 type RegisterResponse struct {
-	User entity.User `json:"user"`
+	User models.User `json:"user"`
 }
 
 type OneTimeTokenResponse struct {
