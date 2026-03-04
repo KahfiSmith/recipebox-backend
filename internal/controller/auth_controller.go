@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"recipebox-backend-go/internal/dto"
-	"recipebox-backend-go/internal/entity"
+	"recipebox-backend-go/internal/models"
 	"recipebox-backend-go/internal/middleware"
 	"recipebox-backend-go/internal/service"
 	"recipebox-backend-go/internal/utils"
@@ -34,6 +34,18 @@ func NewAuthController(service *service.AuthService, refreshCookieSecure bool, r
 	}
 }
 
+// Register godoc
+// @Summary Register user
+// @Description Register a new user account.
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param payload body dto.RegisterRequest true "Register payload"
+// @Success 201 {object} dto.RegisterEnvelope
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 409 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /api/v1/auth/register [post]
 func (h *AuthController) Register(w http.ResponseWriter, r *http.Request) {
 	var input dto.RegisterRequest
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -44,9 +56,9 @@ func (h *AuthController) Register(w http.ResponseWriter, r *http.Request) {
 	resp, err := h.service.Register(r.Context(), input)
 	if err != nil {
 		switch {
-		case errors.Is(err, entity.ErrEmailTaken):
+		case errors.Is(err, models.ErrEmailTaken):
 			utils.Error(w, http.StatusConflict, err.Error())
-		case entity.IsValidationError(err):
+		case models.IsValidationError(err):
 			utils.Error(w, http.StatusBadRequest, err.Error())
 		default:
 			utils.Error(w, http.StatusInternalServerError, "internal server error")
@@ -57,6 +69,19 @@ func (h *AuthController) Register(w http.ResponseWriter, r *http.Request) {
 	utils.JSON(w, http.StatusCreated, map[string]any{"data": resp})
 }
 
+// Login godoc
+// @Summary Login user
+// @Description Login with email and password.
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param payload body dto.LoginRequest true "Login payload"
+// @Success 200 {object} dto.AuthEnvelope
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 403 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /api/v1/auth/login [post]
 func (h *AuthController) Login(w http.ResponseWriter, r *http.Request) {
 	var input dto.LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -67,9 +92,9 @@ func (h *AuthController) Login(w http.ResponseWriter, r *http.Request) {
 	resp, err := h.service.Login(r.Context(), input, r.UserAgent(), extractRequestIP(r, h.trustedProxies))
 	if err != nil {
 		switch {
-		case errors.Is(err, entity.ErrInvalidCredentials):
+		case errors.Is(err, models.ErrInvalidCredentials):
 			utils.Error(w, http.StatusUnauthorized, err.Error())
-		case errors.Is(err, entity.ErrEmailNotVerified):
+		case errors.Is(err, models.ErrEmailNotVerified):
 			utils.Error(w, http.StatusForbidden, err.Error())
 		default:
 			utils.Error(w, http.StatusInternalServerError, "internal server error")
@@ -83,6 +108,18 @@ func (h *AuthController) Login(w http.ResponseWriter, r *http.Request) {
 	utils.JSON(w, http.StatusOK, map[string]any{"data": resp})
 }
 
+// Refresh godoc
+// @Summary Refresh access token
+// @Description Refresh access token using refresh token (cookie or request body).
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param payload body dto.RefreshRequest false "Refresh payload"
+// @Success 200 {object} dto.TokenEnvelope
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /api/v1/auth/refresh [post]
 func (h *AuthController) Refresh(w http.ResponseWriter, r *http.Request) {
 	refreshToken, err := refreshTokenFromRequest(r)
 	if err != nil {
@@ -93,7 +130,7 @@ func (h *AuthController) Refresh(w http.ResponseWriter, r *http.Request) {
 	resp, err := h.service.Refresh(r.Context(), refreshToken, r.UserAgent(), extractRequestIP(r, h.trustedProxies))
 	if err != nil {
 		switch {
-		case errors.Is(err, entity.ErrInvalidRefreshToken):
+		case errors.Is(err, models.ErrInvalidRefreshToken):
 			utils.Error(w, http.StatusUnauthorized, err.Error())
 		default:
 			utils.Error(w, http.StatusInternalServerError, "internal server error")
@@ -107,6 +144,17 @@ func (h *AuthController) Refresh(w http.ResponseWriter, r *http.Request) {
 	utils.JSON(w, http.StatusOK, map[string]any{"data": resp})
 }
 
+// Logout godoc
+// @Summary Logout
+// @Description Revoke refresh token and clear cookie.
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param payload body dto.RefreshRequest false "Refresh payload"
+// @Success 200 {object} dto.MessageResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /api/v1/auth/logout [post]
 func (h *AuthController) Logout(w http.ResponseWriter, r *http.Request) {
 	refreshToken, err := refreshTokenFromRequest(r)
 	if err != nil {
@@ -125,6 +173,17 @@ func (h *AuthController) Logout(w http.ResponseWriter, r *http.Request) {
 	utils.JSON(w, http.StatusOK, map[string]any{"message": "logged out"})
 }
 
+// Me godoc
+// @Summary Get current user profile
+// @Description Return current authenticated user profile.
+// @Tags Auth
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} dto.UserEnvelope
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /api/v1/auth/me [get]
 func (h *AuthController) Me(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.UserIDFromContext(r.Context())
 	if !ok {
@@ -134,7 +193,7 @@ func (h *AuthController) Me(w http.ResponseWriter, r *http.Request) {
 
 	user, err := h.service.GetMe(r.Context(), userID)
 	if err != nil {
-		if errors.Is(err, entity.ErrNotFound) {
+		if errors.Is(err, models.ErrNotFound) {
 			utils.Error(w, http.StatusNotFound, "user not found")
 			return
 		}
@@ -145,6 +204,17 @@ func (h *AuthController) Me(w http.ResponseWriter, r *http.Request) {
 	utils.JSON(w, http.StatusOK, map[string]any{"data": user})
 }
 
+// RequestEmailVerification godoc
+// @Summary Request email verification token
+// @Description Request email verification flow.
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param payload body dto.EmailRequest true "Email payload"
+// @Success 200 {object} dto.OneTimeTokenEnvelope
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /api/v1/auth/verify-email/request [post]
 func (h *AuthController) RequestEmailVerification(w http.ResponseWriter, r *http.Request) {
 	var input dto.EmailRequest
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -155,9 +225,9 @@ func (h *AuthController) RequestEmailVerification(w http.ResponseWriter, r *http
 	resp, err := h.service.RequestEmailVerification(r.Context(), input)
 	if err != nil {
 		switch {
-		case errors.Is(err, entity.ErrNotFound):
+		case errors.Is(err, models.ErrNotFound):
 			utils.JSON(w, http.StatusOK, map[string]any{"message": "if the email exists, verification instructions have been generated"})
-		case entity.IsValidationError(err):
+		case models.IsValidationError(err):
 			utils.Error(w, http.StatusBadRequest, err.Error())
 		default:
 			utils.Error(w, http.StatusInternalServerError, "internal server error")
@@ -168,6 +238,17 @@ func (h *AuthController) RequestEmailVerification(w http.ResponseWriter, r *http
 	writeOneTimeTokenMessage(w, "if the email exists, verification instructions have been generated", resp)
 }
 
+// VerifyEmail godoc
+// @Summary Confirm email verification
+// @Description Verify email using one-time token.
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param payload body dto.VerifyEmailRequest true "Verify email payload"
+// @Success 200 {object} dto.MessageResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /api/v1/auth/verify-email/confirm [post]
 func (h *AuthController) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 	var input dto.VerifyEmailRequest
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -177,7 +258,7 @@ func (h *AuthController) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.service.VerifyEmail(r.Context(), input.Token); err != nil {
 		switch {
-		case errors.Is(err, entity.ErrInvalidVerifyToken):
+		case errors.Is(err, models.ErrInvalidVerifyToken):
 			utils.Error(w, http.StatusBadRequest, err.Error())
 		default:
 			utils.Error(w, http.StatusInternalServerError, "internal server error")
@@ -188,6 +269,17 @@ func (h *AuthController) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 	utils.JSON(w, http.StatusOK, map[string]any{"message": "email verified"})
 }
 
+// ForgotPassword godoc
+// @Summary Request password reset token
+// @Description Request reset password flow.
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param payload body dto.EmailRequest true "Email payload"
+// @Success 200 {object} dto.OneTimeTokenEnvelope
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /api/v1/auth/password/forgot [post]
 func (h *AuthController) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 	var input dto.EmailRequest
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -198,9 +290,9 @@ func (h *AuthController) ForgotPassword(w http.ResponseWriter, r *http.Request) 
 	resp, err := h.service.RequestPasswordReset(r.Context(), input)
 	if err != nil {
 		switch {
-		case errors.Is(err, entity.ErrNotFound):
+		case errors.Is(err, models.ErrNotFound):
 			utils.JSON(w, http.StatusOK, map[string]any{"message": "if the email exists, reset instructions have been generated"})
-		case entity.IsValidationError(err):
+		case models.IsValidationError(err):
 			utils.Error(w, http.StatusBadRequest, err.Error())
 		default:
 			utils.Error(w, http.StatusInternalServerError, "internal server error")
@@ -211,6 +303,17 @@ func (h *AuthController) ForgotPassword(w http.ResponseWriter, r *http.Request) 
 	writeOneTimeTokenMessage(w, "if the email exists, reset instructions have been generated", resp)
 }
 
+// ResetPassword godoc
+// @Summary Reset password
+// @Description Reset password using one-time token.
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param payload body dto.ResetPasswordRequest true "Reset password payload"
+// @Success 200 {object} dto.MessageResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /api/v1/auth/password/reset [post]
 func (h *AuthController) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	var input dto.ResetPasswordRequest
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -220,7 +323,7 @@ func (h *AuthController) ResetPassword(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.service.ResetPassword(r.Context(), input.Token, input.NewPassword); err != nil {
 		switch {
-		case errors.Is(err, entity.ErrInvalidResetToken), entity.IsValidationError(err):
+		case errors.Is(err, models.ErrInvalidResetToken), models.IsValidationError(err):
 			utils.Error(w, http.StatusBadRequest, err.Error())
 		default:
 			utils.Error(w, http.StatusInternalServerError, "internal server error")

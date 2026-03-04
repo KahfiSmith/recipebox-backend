@@ -13,7 +13,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"recipebox-backend-go/internal/dto"
-	"recipebox-backend-go/internal/entity"
+	entity "recipebox-backend-go/internal/models"
 	"recipebox-backend-go/internal/repository"
 	"recipebox-backend-go/internal/service"
 	"recipebox-backend-go/internal/utils"
