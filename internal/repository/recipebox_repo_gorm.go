@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -72,6 +73,54 @@ func (r *RecipeBoxGormRepository) ListRecipes(ctx context.Context, userID int64)
 		})
 	}
 	return recipes, nil
+}
+
+func (r *RecipeBoxGormRepository) CreateRecipe(ctx context.Context, userID int64, recipe models.Recipe) (models.Recipe, error) {
+	recipe.ID = 0
+	recipe.UserID = userID
+	if err := r.db.WithContext(ctx).Create(&recipe).Error; err != nil {
+		return models.Recipe{}, fmt.Errorf("create recipe: %w", err)
+	}
+	return recipe, nil
+}
+
+func (r *RecipeBoxGormRepository) UpdateRecipe(ctx context.Context, userID, recipeID int64, recipe models.Recipe) (models.Recipe, error) {
+	updates := map[string]any{
+		"name":       recipe.Name,
+		"category":   recipe.Category,
+		"prep_time":  recipe.PrepTime,
+		"updated_at": time.Now().UTC(),
+	}
+	result := r.db.WithContext(ctx).
+		Model(&models.Recipe{}).
+		Where("id = ? AND user_id = ?", recipeID, userID).
+		Updates(updates)
+	if result.Error != nil {
+		return models.Recipe{}, fmt.Errorf("update recipe: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return models.Recipe{}, models.ErrNotFound
+	}
+
+	var out models.Recipe
+	if err := r.db.WithContext(ctx).Where("id = ? AND user_id = ?", recipeID, userID).Take(&out).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return models.Recipe{}, models.ErrNotFound
+		}
+		return models.Recipe{}, fmt.Errorf("fetch updated recipe: %w", err)
+	}
+	return out, nil
+}
+
+func (r *RecipeBoxGormRepository) DeleteRecipe(ctx context.Context, userID, recipeID int64) error {
+	result := r.db.WithContext(ctx).Where("id = ? AND user_id = ?", recipeID, userID).Delete(&models.Recipe{})
+	if result.Error != nil {
+		return fmt.Errorf("delete recipe: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return models.ErrNotFound
+	}
+	return nil
 }
 
 func (r *RecipeBoxGormRepository) ListMealPlans(ctx context.Context, userID int64) ([]models.MealPlan, error) {
@@ -146,6 +195,55 @@ func (r *RecipeBoxGormRepository) ListMealPlans(ctx context.Context, userID int6
 	return result, nil
 }
 
+func (r *RecipeBoxGormRepository) CreateMealPlan(ctx context.Context, userID int64, mealPlan models.MealPlan) (models.MealPlan, error) {
+	mealPlan.ID = 0
+	mealPlan.UserID = userID
+	if err := r.db.WithContext(ctx).Create(&mealPlan).Error; err != nil {
+		return models.MealPlan{}, fmt.Errorf("create meal plan: %w", err)
+	}
+	return mealPlan, nil
+}
+
+func (r *RecipeBoxGormRepository) UpdateMealPlan(ctx context.Context, userID, mealPlanID int64, mealPlan models.MealPlan) (models.MealPlan, error) {
+	updates := map[string]any{
+		"day":         mealPlan.Day,
+		"meal_name":   mealPlan.MealName,
+		"servings":    mealPlan.Servings,
+		"ingredients": mealPlan.Ingredients,
+		"updated_at":  time.Now().UTC(),
+	}
+	result := r.db.WithContext(ctx).
+		Model(&models.MealPlan{}).
+		Where("id = ? AND user_id = ?", mealPlanID, userID).
+		Updates(updates)
+	if result.Error != nil {
+		return models.MealPlan{}, fmt.Errorf("update meal plan: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return models.MealPlan{}, models.ErrNotFound
+	}
+
+	var out models.MealPlan
+	if err := r.db.WithContext(ctx).Where("id = ? AND user_id = ?", mealPlanID, userID).Take(&out).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return models.MealPlan{}, models.ErrNotFound
+		}
+		return models.MealPlan{}, fmt.Errorf("fetch updated meal plan: %w", err)
+	}
+	return out, nil
+}
+
+func (r *RecipeBoxGormRepository) DeleteMealPlan(ctx context.Context, userID, mealPlanID int64) error {
+	result := r.db.WithContext(ctx).Where("id = ? AND user_id = ?", mealPlanID, userID).Delete(&models.MealPlan{})
+	if result.Error != nil {
+		return fmt.Errorf("delete meal plan: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return models.ErrNotFound
+	}
+	return nil
+}
+
 func (r *RecipeBoxGormRepository) ListShoppingItems(ctx context.Context, userID int64) ([]models.ShoppingItem, error) {
 	type shoppingRow struct {
 		ID       int64  `gorm:"column:id"`
@@ -208,6 +306,68 @@ func (r *RecipeBoxGormRepository) ListShoppingItems(ctx context.Context, userID 
 		})
 	}
 	return items, nil
+}
+
+func (r *RecipeBoxGormRepository) CreateShoppingItem(ctx context.Context, userID int64, item models.ShoppingItem) (models.ShoppingItem, error) {
+	item.ID = 0
+	item.UserID = userID
+	if item.Checked {
+		now := time.Now().UTC()
+		item.CheckedAt = &now
+	} else {
+		item.CheckedAt = nil
+	}
+	if err := r.db.WithContext(ctx).Create(&item).Error; err != nil {
+		return models.ShoppingItem{}, fmt.Errorf("create shopping item: %w", err)
+	}
+	return item, nil
+}
+
+func (r *RecipeBoxGormRepository) UpdateShoppingItem(ctx context.Context, userID, itemID int64, item models.ShoppingItem) (models.ShoppingItem, error) {
+	updates := map[string]any{
+		"menu_name":  item.MenuName,
+		"name":       item.Name,
+		"qty":        item.Qty,
+		"checked":    item.Checked,
+		"updated_at": time.Now().UTC(),
+	}
+	if item.Checked {
+		now := time.Now().UTC()
+		updates["checked_at"] = &now
+	} else {
+		updates["checked_at"] = nil
+	}
+
+	result := r.db.WithContext(ctx).
+		Model(&models.ShoppingItem{}).
+		Where("id = ? AND user_id = ?", itemID, userID).
+		Updates(updates)
+	if result.Error != nil {
+		return models.ShoppingItem{}, fmt.Errorf("update shopping item: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return models.ShoppingItem{}, models.ErrNotFound
+	}
+
+	var out models.ShoppingItem
+	if err := r.db.WithContext(ctx).Where("id = ? AND user_id = ?", itemID, userID).Take(&out).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return models.ShoppingItem{}, models.ErrNotFound
+		}
+		return models.ShoppingItem{}, fmt.Errorf("fetch updated shopping item: %w", err)
+	}
+	return out, nil
+}
+
+func (r *RecipeBoxGormRepository) DeleteShoppingItem(ctx context.Context, userID, itemID int64) error {
+	result := r.db.WithContext(ctx).Where("id = ? AND user_id = ?", itemID, userID).Delete(&models.ShoppingItem{})
+	if result.Error != nil {
+		return fmt.Errorf("delete shopping item: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return models.ErrNotFound
+	}
+	return nil
 }
 
 func (r *RecipeBoxGormRepository) hasColumn(model any, column string) bool {
