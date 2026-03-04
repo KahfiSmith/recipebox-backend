@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"recipebox-backend-go/internal/dto"
 	"recipebox-backend-go/internal/models"
 	"recipebox-backend-go/internal/repository"
 )
@@ -133,6 +134,42 @@ func (f fakeRecipeBoxRepository) ListRecipes(_ context.Context, _ int64) ([]mode
 	return cloneRecipes(f.recipes), nil
 }
 
+func TestDashboardServiceCreateRecipeValidatesInput(t *testing.T) {
+	t.Parallel()
+
+	svc := NewDashboardService(fakeRecipeBoxRepository{})
+	_, err := svc.CreateRecipe(context.Background(), 42, dto.UpsertRecipeRequest{
+		Name:     "",
+		Category: "Dinner",
+		PrepTime: 10,
+	})
+	if !models.IsValidationError(err) {
+		t.Fatalf("expected validation error, got %v", err)
+	}
+}
+
+func (f fakeRecipeBoxRepository) CreateRecipe(_ context.Context, userID int64, recipe models.Recipe) (models.Recipe, error) {
+	if f.err != nil {
+		return models.Recipe{}, f.err
+	}
+	recipe.ID = 1001
+	recipe.UserID = userID
+	return recipe, nil
+}
+
+func (f fakeRecipeBoxRepository) UpdateRecipe(_ context.Context, userID, recipeID int64, recipe models.Recipe) (models.Recipe, error) {
+	if f.err != nil {
+		return models.Recipe{}, f.err
+	}
+	recipe.ID = recipeID
+	recipe.UserID = userID
+	return recipe, nil
+}
+
+func (f fakeRecipeBoxRepository) DeleteRecipe(_ context.Context, _, _ int64) error {
+	return f.err
+}
+
 func (f fakeRecipeBoxRepository) ListMealPlans(_ context.Context, _ int64) ([]models.MealPlan, error) {
 	if f.err != nil {
 		return nil, f.err
@@ -140,11 +177,55 @@ func (f fakeRecipeBoxRepository) ListMealPlans(_ context.Context, _ int64) ([]mo
 	return cloneMealPlans(f.mealPlans), nil
 }
 
+func (f fakeRecipeBoxRepository) CreateMealPlan(_ context.Context, userID int64, mealPlan models.MealPlan) (models.MealPlan, error) {
+	if f.err != nil {
+		return models.MealPlan{}, f.err
+	}
+	mealPlan.ID = 2001
+	mealPlan.UserID = userID
+	return mealPlan, nil
+}
+
+func (f fakeRecipeBoxRepository) UpdateMealPlan(_ context.Context, userID, mealPlanID int64, mealPlan models.MealPlan) (models.MealPlan, error) {
+	if f.err != nil {
+		return models.MealPlan{}, f.err
+	}
+	mealPlan.ID = mealPlanID
+	mealPlan.UserID = userID
+	return mealPlan, nil
+}
+
+func (f fakeRecipeBoxRepository) DeleteMealPlan(_ context.Context, _, _ int64) error {
+	return f.err
+}
+
 func (f fakeRecipeBoxRepository) ListShoppingItems(_ context.Context, _ int64) ([]models.ShoppingItem, error) {
 	if f.err != nil {
 		return nil, f.err
 	}
 	return cloneShoppingItems(f.shoppingItems), nil
+}
+
+func (f fakeRecipeBoxRepository) CreateShoppingItem(_ context.Context, userID int64, item models.ShoppingItem) (models.ShoppingItem, error) {
+	if f.err != nil {
+		return models.ShoppingItem{}, f.err
+	}
+	item.ID = 3001
+	item.UserID = userID
+	return item, nil
+}
+
+func (f fakeRecipeBoxRepository) UpdateShoppingItem(_ context.Context, userID, itemID int64, item models.ShoppingItem) (models.ShoppingItem, error) {
+	if f.err != nil {
+		return models.ShoppingItem{}, f.err
+	}
+	item.ID = itemID
+	item.UserID = userID
+	return item, nil
+}
+
+func (f fakeRecipeBoxRepository) DeleteShoppingItem(_ context.Context, _, _ int64) error {
+	return f.err
 }
 
 func cloneRecipes(in []models.Recipe) []models.Recipe {
