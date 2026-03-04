@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"recipebox-backend-go/internal/dto"
-	"recipebox-backend-go/internal/entity"
+	"recipebox-backend-go/internal/models"
 	"recipebox-backend-go/internal/repository"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -87,8 +87,8 @@ func (s *AuthService) Register(ctx context.Context, input dto.RegisterRequest) (
 
 	user, err := s.repo.CreateUser(ctx, name, email, string(passwordHash))
 	if err != nil {
-		if errors.Is(err, entity.ErrConflict) {
-			return dto.RegisterResponse{}, entity.ErrEmailTaken
+		if errors.Is(err, models.ErrConflict) {
+			return dto.RegisterResponse{}, models.ErrEmailTaken
 		}
 		return dto.RegisterResponse{}, err
 	}
@@ -100,22 +100,22 @@ func (s *AuthService) Register(ctx context.Context, input dto.RegisterRequest) (
 func (s *AuthService) Login(ctx context.Context, input dto.LoginRequest, userAgent, ip string) (dto.AuthResponse, error) {
 	email, err := normalizeEmail(input.Email)
 	if err != nil {
-		return dto.AuthResponse{}, entity.ErrInvalidCredentials
+		return dto.AuthResponse{}, models.ErrInvalidCredentials
 	}
 
 	user, err := s.repo.FindUserByEmail(ctx, email)
 	if err != nil {
-		if errors.Is(err, entity.ErrNotFound) {
-			return dto.AuthResponse{}, entity.ErrInvalidCredentials
+		if errors.Is(err, models.ErrNotFound) {
+			return dto.AuthResponse{}, models.ErrInvalidCredentials
 		}
 		return dto.AuthResponse{}, err
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(input.Password)); err != nil {
-		return dto.AuthResponse{}, entity.ErrInvalidCredentials
+		return dto.AuthResponse{}, models.ErrInvalidCredentials
 	}
 	if user.EmailVerifiedAt == nil {
-		return dto.AuthResponse{}, entity.ErrEmailNotVerified
+		return dto.AuthResponse{}, models.ErrEmailNotVerified
 	}
 
 	tokens, err := s.issueTokens(ctx, user.ID, userAgent, ip)
@@ -130,16 +130,16 @@ func (s *AuthService) Login(ctx context.Context, input dto.LoginRequest, userAge
 func (s *AuthService) Refresh(ctx context.Context, refreshToken, userAgent, ip string) (dto.TokenPair, error) {
 	refreshToken = strings.TrimSpace(refreshToken)
 	if refreshToken == "" {
-		return dto.TokenPair{}, entity.ErrInvalidRefreshToken
+		return dto.TokenPair{}, models.ErrInvalidRefreshToken
 	}
 
 	oldHash := hashToken(refreshToken)
 	now := s.now()
 	userID, err := s.repo.FindRefreshTokenOwner(ctx, oldHash, now)
 	if err != nil {
-		if errors.Is(err, entity.ErrNotFound) {
+		if errors.Is(err, models.ErrNotFound) {
 			s.detectRefreshTokenReuse(ctx, oldHash)
-			return dto.TokenPair{}, entity.ErrInvalidRefreshToken
+			return dto.TokenPair{}, models.ErrInvalidRefreshToken
 		}
 		return dto.TokenPair{}, err
 	}
@@ -148,8 +148,8 @@ func (s *AuthService) Refresh(ctx context.Context, refreshToken, userAgent, ip s
 	currentIP := sanitizeIP(ip)
 	storedToken, err := s.repo.FindRefreshTokenByHash(ctx, oldHash)
 	if err != nil {
-		if errors.Is(err, entity.ErrNotFound) {
-			return dto.TokenPair{}, entity.ErrInvalidRefreshToken
+		if errors.Is(err, models.ErrNotFound) {
+			return dto.TokenPair{}, models.ErrInvalidRefreshToken
 		}
 		return dto.TokenPair{}, err
 	}
@@ -157,13 +157,13 @@ func (s *AuthService) Refresh(ctx context.Context, refreshToken, userAgent, ip s
 		if err := s.repo.RevokeAllUserRefreshTokens(ctx, userID); err != nil {
 			return dto.TokenPair{}, err
 		}
-		return dto.TokenPair{}, entity.ErrInvalidRefreshToken
+		return dto.TokenPair{}, models.ErrInvalidRefreshToken
 	}
 
 	user, err := s.repo.FindUserByID(ctx, userID)
 	if err != nil {
-		if errors.Is(err, entity.ErrNotFound) {
-			return dto.TokenPair{}, entity.ErrInvalidRefreshToken
+		if errors.Is(err, models.ErrNotFound) {
+			return dto.TokenPair{}, models.ErrInvalidRefreshToken
 		}
 		return dto.TokenPair{}, err
 	}
@@ -181,8 +181,8 @@ func (s *AuthService) Refresh(ctx context.Context, refreshToken, userAgent, ip s
 	refreshExp := now.Add(s.refreshTokenTTL)
 	newHash := hashToken(newRefreshToken)
 	if err := s.repo.RotateRefreshToken(ctx, oldHash, newHash, refreshExp, now, currentUserAgent, currentIP); err != nil {
-		if errors.Is(err, entity.ErrNotFound) {
-			return dto.TokenPair{}, entity.ErrInvalidRefreshToken
+		if errors.Is(err, models.ErrNotFound) {
+			return dto.TokenPair{}, models.ErrInvalidRefreshToken
 		}
 		return dto.TokenPair{}, err
 	}
@@ -198,10 +198,10 @@ func (s *AuthService) Logout(ctx context.Context, refreshToken string) error {
 	return s.repo.RevokeRefreshToken(ctx, hashToken(refreshToken))
 }
 
-func (s *AuthService) GetMe(ctx context.Context, userID int64) (entity.User, error) {
+func (s *AuthService) GetMe(ctx context.Context, userID int64) (models.User, error) {
 	user, err := s.repo.FindUserByID(ctx, userID)
 	if err != nil {
-		return entity.User{}, err
+		return models.User{}, err
 	}
 	user.PasswordHash = ""
 	return user, nil
@@ -215,8 +215,8 @@ func (s *AuthService) RequestEmailVerification(ctx context.Context, input dto.Em
 
 	user, err := s.repo.FindUserByEmail(ctx, email)
 	if err != nil {
-		if errors.Is(err, entity.ErrNotFound) {
-			return dto.OneTimeTokenResponse{}, entity.ErrNotFound
+		if errors.Is(err, models.ErrNotFound) {
+			return dto.OneTimeTokenResponse{}, models.ErrNotFound
 		}
 		return dto.OneTimeTokenResponse{}, err
 	}
@@ -246,12 +246,12 @@ func (s *AuthService) RequestEmailVerification(ctx context.Context, input dto.Em
 func (s *AuthService) VerifyEmail(ctx context.Context, token string) error {
 	token = strings.TrimSpace(token)
 	if token == "" {
-		return entity.ErrInvalidVerifyToken
+		return models.ErrInvalidVerifyToken
 	}
 
 	if err := s.repo.ConsumeEmailVerificationToken(ctx, hashToken(token), s.now()); err != nil {
-		if errors.Is(err, entity.ErrNotFound) {
-			return entity.ErrInvalidVerifyToken
+		if errors.Is(err, models.ErrNotFound) {
+			return models.ErrInvalidVerifyToken
 		}
 		return err
 	}
@@ -266,8 +266,8 @@ func (s *AuthService) RequestPasswordReset(ctx context.Context, input dto.EmailR
 
 	user, err := s.repo.FindUserByEmail(ctx, email)
 	if err != nil {
-		if errors.Is(err, entity.ErrNotFound) {
-			return dto.OneTimeTokenResponse{}, entity.ErrNotFound
+		if errors.Is(err, models.ErrNotFound) {
+			return dto.OneTimeTokenResponse{}, models.ErrNotFound
 		}
 		return dto.OneTimeTokenResponse{}, err
 	}
@@ -293,7 +293,7 @@ func (s *AuthService) RequestPasswordReset(ctx context.Context, input dto.EmailR
 func (s *AuthService) ResetPassword(ctx context.Context, token, newPassword string) error {
 	token = strings.TrimSpace(token)
 	if token == "" {
-		return entity.ErrInvalidResetToken
+		return models.ErrInvalidResetToken
 	}
 	if err := validatePassword(newPassword); err != nil {
 		return err
@@ -305,8 +305,8 @@ func (s *AuthService) ResetPassword(ctx context.Context, token, newPassword stri
 	}
 
 	if err := s.repo.ConsumePasswordResetTokenAndUpdatePassword(ctx, hashToken(token), string(newPasswordHash), s.now()); err != nil {
-		if errors.Is(err, entity.ErrNotFound) {
-			return entity.ErrInvalidResetToken
+		if errors.Is(err, models.ErrNotFound) {
+			return models.ErrInvalidResetToken
 		}
 		return err
 	}
@@ -397,10 +397,10 @@ func (s *AuthService) createAccessToken(userID int64) (string, time.Time, error)
 func normalizeEmail(email string) (string, error) {
 	email = strings.ToLower(strings.TrimSpace(email))
 	if email == "" {
-		return "", entity.ValidationError{Message: "email is required"}
+		return "", models.ValidationError{Message: "email is required"}
 	}
 	if _, err := mail.ParseAddress(email); err != nil {
-		return "", entity.ValidationError{Message: "invalid email"}
+		return "", models.ValidationError{Message: "invalid email"}
 	}
 	return email, nil
 }
@@ -408,20 +408,20 @@ func normalizeEmail(email string) (string, error) {
 func normalizeName(name string) (string, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
-		return "", entity.ValidationError{Message: "name is required"}
+		return "", models.ValidationError{Message: "name is required"}
 	}
 	if len(name) > 100 {
-		return "", entity.ValidationError{Message: "name must be at most 100 characters"}
+		return "", models.ValidationError{Message: "name must be at most 100 characters"}
 	}
 	return name, nil
 }
 
 func validatePassword(password string) error {
 	if len(password) < 8 {
-		return entity.ValidationError{Message: "password must be at least 8 characters"}
+		return models.ValidationError{Message: "password must be at least 8 characters"}
 	}
 	if len(password) > 72 {
-		return entity.ValidationError{Message: "password must be at most 72 characters"}
+		return models.ValidationError{Message: "password must be at most 72 characters"}
 	}
 	return nil
 }
@@ -451,7 +451,7 @@ func sanitizeIP(ip string) string {
 	return parsed.String()
 }
 
-func refreshTokenMetadataMismatch(token entity.RefreshToken, currentUserAgent, currentIP string) bool {
+func refreshTokenMetadataMismatch(token models.RefreshToken, currentUserAgent, currentIP string) bool {
 	if storedUserAgent := strings.TrimSpace(token.UserAgent); storedUserAgent != "" && currentUserAgent != "" && storedUserAgent != currentUserAgent {
 		return true
 	}

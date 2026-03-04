@@ -10,7 +10,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 	"recipebox-backend-go/internal/dto"
-	"recipebox-backend-go/internal/entity"
+	entity "recipebox-backend-go/internal/models"
 )
 
 type stubEmailSender struct {
