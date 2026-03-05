@@ -19,6 +19,11 @@ type DashboardController struct {
 	service *service.DashboardService
 }
 
+const (
+	defaultPageLimit = 20
+	maxPageLimit     = 100
+)
+
 func NewDashboardController(service *service.DashboardService) *DashboardController {
 	return &DashboardController{service: service}
 }
@@ -55,8 +60,11 @@ func (h *DashboardController) GetDashboard(w http.ResponseWriter, r *http.Reques
 // @Tags Recipes
 // @Produce json
 // @Security BearerAuth
+// @Param limit query int false "Max items per page (default 20, max 100)"
+// @Param offset query int false "Pagination offset (default 0)"
 // @Success 200 {object} dto.RecipesEnvelope
 // @Failure 401 {object} dto.ErrorResponse
+// @Failure 400 {object} dto.ErrorResponse
 // @Failure 500 {object} dto.ErrorResponse
 // @Router /api/v1/recipes [get]
 func (h *DashboardController) GetRecipes(w http.ResponseWriter, r *http.Request) {
@@ -66,7 +74,12 @@ func (h *DashboardController) GetRecipes(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	resp, err := h.service.ListRecipes(r.Context(), userID)
+	limit, offset, ok := paginationParams(w, r)
+	if !ok {
+		return
+	}
+
+	resp, err := h.service.ListRecipesPage(r.Context(), userID, limit, offset)
 	if err != nil {
 		utils.Error(w, http.StatusInternalServerError, "failed to load recipes")
 		return
@@ -191,8 +204,11 @@ func (h *DashboardController) DeleteRecipe(w http.ResponseWriter, r *http.Reques
 // @Tags Meal Plans
 // @Produce json
 // @Security BearerAuth
+// @Param limit query int false "Max items per page (default 20, max 100)"
+// @Param offset query int false "Pagination offset (default 0)"
 // @Success 200 {object} dto.MealPlansEnvelope
 // @Failure 401 {object} dto.ErrorResponse
+// @Failure 400 {object} dto.ErrorResponse
 // @Failure 500 {object} dto.ErrorResponse
 // @Router /api/v1/meal-plans [get]
 func (h *DashboardController) GetMealPlans(w http.ResponseWriter, r *http.Request) {
@@ -202,7 +218,12 @@ func (h *DashboardController) GetMealPlans(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	resp, err := h.service.ListMealPlans(r.Context(), userID)
+	limit, offset, ok := paginationParams(w, r)
+	if !ok {
+		return
+	}
+
+	resp, err := h.service.ListMealPlansPage(r.Context(), userID, limit, offset)
 	if err != nil {
 		utils.Error(w, http.StatusInternalServerError, "failed to load meal plans")
 		return
@@ -327,8 +348,11 @@ func (h *DashboardController) DeleteMealPlan(w http.ResponseWriter, r *http.Requ
 // @Tags Shopping Items
 // @Produce json
 // @Security BearerAuth
+// @Param limit query int false "Max items per page (default 20, max 100)"
+// @Param offset query int false "Pagination offset (default 0)"
 // @Success 200 {object} dto.ShoppingItemsEnvelope
 // @Failure 401 {object} dto.ErrorResponse
+// @Failure 400 {object} dto.ErrorResponse
 // @Failure 500 {object} dto.ErrorResponse
 // @Router /api/v1/shopping-items [get]
 func (h *DashboardController) GetShoppingItems(w http.ResponseWriter, r *http.Request) {
@@ -338,7 +362,12 @@ func (h *DashboardController) GetShoppingItems(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	resp, err := h.service.ListShoppingItems(r.Context(), userID)
+	limit, offset, ok := paginationParams(w, r)
+	if !ok {
+		return
+	}
+
+	resp, err := h.service.ListShoppingItemsPage(r.Context(), userID, limit, offset)
 	if err != nil {
 		utils.Error(w, http.StatusInternalServerError, "failed to load shopping items")
 		return
@@ -481,4 +510,32 @@ func pathID(w http.ResponseWriter, r *http.Request, param string) (int64, bool) 
 		return 0, false
 	}
 	return id, true
+}
+
+func paginationParams(w http.ResponseWriter, r *http.Request) (int, int, bool) {
+	limit := defaultPageLimit
+	offset := 0
+
+	if raw := r.URL.Query().Get("limit"); raw != "" {
+		v, err := strconv.Atoi(raw)
+		if err != nil || v <= 0 {
+			utils.Error(w, http.StatusBadRequest, "invalid limit")
+			return 0, 0, false
+		}
+		if v > maxPageLimit {
+			v = maxPageLimit
+		}
+		limit = v
+	}
+
+	if raw := r.URL.Query().Get("offset"); raw != "" {
+		v, err := strconv.Atoi(raw)
+		if err != nil || v < 0 {
+			utils.Error(w, http.StatusBadRequest, "invalid offset")
+			return 0, 0, false
+		}
+		offset = v
+	}
+
+	return limit, offset, true
 }

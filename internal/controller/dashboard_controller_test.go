@@ -184,6 +184,38 @@ func (r dashboardTestRepository) ListRecipes(_ context.Context, _ int64) ([]mode
 	return out, nil
 }
 
+func TestDashboardMenuEndpointsRejectInvalidPagination(t *testing.T) {
+	t.Parallel()
+
+	secret := strings.Repeat("a", 32)
+	dashboardService := service.NewDashboardService(newDashboardTestRepository())
+	dashboardController := NewDashboardController(dashboardService)
+	authService := service.NewAuthService(nil, secret, 15*time.Minute, 24*time.Hour, 10)
+
+	handler := middleware.AuthJWT(authService)(http.HandlerFunc(dashboardController.GetRecipes))
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/recipes?limit=0", nil)
+	req.Header.Set("Authorization", "Bearer "+makeDashboardToken(t, secret, 42))
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for invalid limit, got %d", rec.Code)
+	}
+}
+
+func (r dashboardTestRepository) ListRecipesPage(_ context.Context, _ int64, limit, offset int) ([]models.Recipe, error) {
+	out := make([]models.Recipe, len(r.recipes))
+	copy(out, r.recipes)
+	if offset >= len(out) {
+		return []models.Recipe{}, nil
+	}
+	end := offset + limit
+	if end > len(out) {
+		end = len(out)
+	}
+	return out[offset:end], nil
+}
+
 func TestDashboardCreateRecipeReturnsCreated(t *testing.T) {
 	t.Parallel()
 
@@ -239,6 +271,19 @@ func (r dashboardTestRepository) ListMealPlans(_ context.Context, _ int64) ([]mo
 	return out, nil
 }
 
+func (r dashboardTestRepository) ListMealPlansPage(_ context.Context, _ int64, limit, offset int) ([]models.MealPlan, error) {
+	out := make([]models.MealPlan, len(r.mealPlans))
+	copy(out, r.mealPlans)
+	if offset >= len(out) {
+		return []models.MealPlan{}, nil
+	}
+	end := offset + limit
+	if end > len(out) {
+		end = len(out)
+	}
+	return out[offset:end], nil
+}
+
 func (r dashboardTestRepository) CreateMealPlan(_ context.Context, userID int64, mealPlan models.MealPlan) (models.MealPlan, error) {
 	mealPlan.ID = 2001
 	mealPlan.UserID = userID
@@ -259,6 +304,19 @@ func (r dashboardTestRepository) ListShoppingItems(_ context.Context, _ int64) (
 	out := make([]models.ShoppingItem, len(r.shoppingItems))
 	copy(out, r.shoppingItems)
 	return out, nil
+}
+
+func (r dashboardTestRepository) ListShoppingItemsPage(_ context.Context, _ int64, limit, offset int) ([]models.ShoppingItem, error) {
+	out := make([]models.ShoppingItem, len(r.shoppingItems))
+	copy(out, r.shoppingItems)
+	if offset >= len(out) {
+		return []models.ShoppingItem{}, nil
+	}
+	end := offset + limit
+	if end > len(out) {
+		end = len(out)
+	}
+	return out[offset:end], nil
 }
 
 func (r dashboardTestRepository) CreateShoppingItem(_ context.Context, userID int64, item models.ShoppingItem) (models.ShoppingItem, error) {
