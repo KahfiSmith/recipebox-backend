@@ -164,7 +164,7 @@ func (h *AuthController) Logout(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err := h.service.Logout(r.Context(), refreshToken); err != nil {
+	if err := h.service.Logout(r.Context(), refreshToken, accessTokenFromAuthorizationHeader(r)); err != nil {
 		utils.Error(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
@@ -385,4 +385,12 @@ func writeOneTimeTokenMessage(w http.ResponseWriter, message string, resp dto.On
 		payload["data"] = resp
 	}
 	utils.JSON(w, http.StatusOK, payload)
+}
+
+func accessTokenFromAuthorizationHeader(r *http.Request) string {
+	authHeader := strings.TrimSpace(r.Header.Get("Authorization"))
+	if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+		return ""
+	}
+	return strings.TrimSpace(strings.TrimPrefix(authHeader, "Bearer "))
 }
