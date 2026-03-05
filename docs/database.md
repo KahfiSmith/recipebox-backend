@@ -25,6 +25,7 @@ bash scripts/migrate-down.sh 1
 ## Notes
 - Add new migration files for schema changes.
 - Do not modify old migrations that are already applied in shared environments.
+- Dashboard query performance indexes are added in `migrations/000005_add_dashboard_perf_indexes.*.sql`.
 
 ## Redis Auth-State (Non-SQL)
 - Redis is used for short-lived auth/runtime state and counters via `github.com/redis/go-redis/v9`.

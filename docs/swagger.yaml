@@ -574,6 +574,15 @@ paths:
   /api/v1/meal-plans:
     get:
       description: Return meal plans list used by dashboard/meal-plan page.
+      parameters:
+      - description: Max items per page (default 20, max 100)
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination offset (default 0)
+        in: query
+        name: offset
+        type: integer
       produces:
       - application/json
       responses:
@@ -581,6 +590,10 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/recipebox-backend-go_internal_dto.MealPlansEnvelope'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
@@ -713,6 +726,15 @@ paths:
   /api/v1/recipes:
     get:
       description: Return recipes list used by dashboard/recipes page.
+      parameters:
+      - description: Max items per page (default 20, max 100)
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination offset (default 0)
+        in: query
+        name: offset
+        type: integer
       produces:
       - application/json
       responses:
@@ -720,6 +742,10 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/recipebox-backend-go_internal_dto.RecipesEnvelope'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
@@ -852,6 +878,15 @@ paths:
   /api/v1/shopping-items:
     get:
       description: Return shopping items list used by dashboard/shopping page.
+      parameters:
+      - description: Max items per page (default 20, max 100)
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination offset (default 0)
+        in: query
+        name: offset
+        type: integer
       produces:
       - application/json
       responses:
@@ -859,6 +894,10 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/recipebox-backend-go_internal_dto.ShoppingItemsEnvelope'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
         "401":
           description: Unauthorized
           schema:

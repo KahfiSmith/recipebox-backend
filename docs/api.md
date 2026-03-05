@@ -45,8 +45,21 @@ Generate Swagger from annotations:
 
 For full request/response schemas, use generated Swagger files.
 
+## Pagination
+- List endpoints support query params:
+  - `limit` (default `20`, max `100`)
+  - `offset` (default `0`)
+- Applies to:
+  - `GET /api/v1/recipes`
+  - `GET /api/v1/meal-plans`
+  - `GET /api/v1/shopping-items`
+
 ## Auth Behavior Notes
 - `POST /api/v1/auth/login` and `POST /api/v1/auth/refresh` set refresh token in HTTP-only cookie (`refresh_token`), and do not expose refresh token in response body.
 - `POST /api/v1/auth/refresh` accepts refresh token from cookie first, and falls back to request body (`refreshToken`).
 - `POST /api/v1/auth/logout` revokes refresh token and clears cookie; when a bearer access token is provided, access session is revoked/blacklisted.
 - Access tokens are validated via JWT middleware and checked against Redis-backed auth state.
+
+## Dashboard Performance Notes
+- `GET /api/v1/dashboard` uses short-lived server-side Redis cache per user.
+- Recipe/meal-plan/shopping write endpoints invalidate cached dashboard overview for that user.

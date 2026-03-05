@@ -24,6 +24,7 @@
 - Access-token blacklist state for immediate invalidation on logout/revoke.
 - OTP/token short-lived state for email verification and password reset flows.
 - Refresh-token active state mirror for fast validation/revocation checks.
+- Dashboard aggregate cache per user (`GET /api/v1/dashboard`) with short TTL and write-path invalidation.
 
 PostgreSQL remains the durable source of truth for users and persisted auth records.
 

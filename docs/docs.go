@@ -500,11 +500,31 @@ const docTemplate = `{
                     "Meal Plans"
                 ],
                 "summary": "List meal plans",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Max items per page (default 20, max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Pagination offset (default 0)",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.MealPlansEnvelope"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
                         }
                     },
                     "401": {
@@ -718,11 +738,31 @@ const docTemplate = `{
                     "Recipes"
                 ],
                 "summary": "List recipe cards",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Max items per page (default 20, max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Pagination offset (default 0)",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.RecipesEnvelope"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
                         }
                     },
                     "401": {
@@ -936,11 +976,31 @@ const docTemplate = `{
                     "Shopping Items"
                 ],
                 "summary": "List shopping items",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Max items per page (default 20, max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Pagination offset (default 0)",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.ShoppingItemsEnvelope"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
                         }
                     },
                     "401": {
