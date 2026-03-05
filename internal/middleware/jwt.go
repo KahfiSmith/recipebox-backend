@@ -28,7 +28,7 @@ func AuthJWT(authService *service.AuthService) func(http.Handler) http.Handler {
 				return
 			}
 
-			userID, err := authService.ParseAccessToken(token)
+			userID, err := authService.ParseAccessToken(r.Context(), token)
 			if err != nil {
 				utils.Error(w, http.StatusUnauthorized, "invalid access token")
 				return

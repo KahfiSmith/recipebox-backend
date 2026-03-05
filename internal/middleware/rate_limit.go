@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/redis/go-redis/v9"
 	"recipebox-backend-go/internal/utils"
 )
 
@@ -15,18 +16,14 @@ type AuthRateLimitStore interface {
 	Increment(ctx context.Context, key string, window time.Duration) (int64, error)
 }
 
-type redisEvaler interface {
-	EvalInt(ctx context.Context, script string, keys []string, args []string) (int64, error)
-}
-
 type redisAuthRateLimitStore struct {
-	client redisEvaler
+	redisClient *redis.Client
 }
 
 const rateLimitIncrementScript = "local current = redis.call('INCR', KEYS[1]); if current == 1 then redis.call('PEXPIRE', KEYS[1], ARGV[1]); end; return current"
 
-func NewRedisAuthRateLimitStore(client redisEvaler) AuthRateLimitStore {
-	return &redisAuthRateLimitStore{client: client}
+func NewRedisAuthRateLimitStore(redisClient *redis.Client) AuthRateLimitStore {
+	return &redisAuthRateLimitStore{redisClient: redisClient}
 }
 
 func NewAuthRateLimit(store AuthRateLimitStore, limitPerMinute int, trustedProxies []*net.IPNet) func(http.Handler) http.Handler {
@@ -65,7 +62,7 @@ func allowRequest(ctx context.Context, store AuthRateLimitStore, key string, lim
 }
 
 func (s *redisAuthRateLimitStore) Increment(ctx context.Context, key string, window time.Duration) (int64, error) {
-	result, err := s.client.EvalInt(ctx, rateLimitIncrementScript, []string{key}, []string{strconv.FormatInt(window.Milliseconds(), 10)})
+	result, err := s.redisClient.Eval(ctx, rateLimitIncrementScript, []string{key}, strconv.FormatInt(window.Milliseconds(), 10)).Int64()
 	if err != nil {
 		return 0, err
 	}
