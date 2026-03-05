@@ -5,9 +5,10 @@
 2. Add controller handler for parsing + HTTP mapping.
 3. Add service method for validation + business rules.
 4. Add repository method for DB operation.
-5. Scope queries by `user_id` for user-owned resources.
-6. Add/update tests.
-7. Update `docs/api.md` and regenerate Swagger.
+5. For short-lived auth state (sessions/OTP/blacklist/rate-limit), add/update Redis store behavior in `internal/store/redis`.
+6. Scope queries by `user_id` for user-owned resources.
+7. Add/update tests.
+8. Update `docs/api.md` and regenerate Swagger.
 
 ## Pattern 2: Update Existing Endpoint
 1. Preserve existing request/response contract by default.
@@ -35,3 +36,8 @@ When API behavior changes:
 2. Update `docs/api.md` endpoint list.
 3. Run `bash scripts/swagger-generate.sh`.
 4. Ensure `docs/swagger.yaml`, `docs/swagger.json`, and `docs/docs.go` are refreshed.
+
+## Pattern 6: Redis Usage
+1. Use `github.com/redis/go-redis/v9` for Redis communication.
+2. Keep Redis concerns in middleware/store layers (rate limit, auth state, short-lived tokens).
+3. Keep PostgreSQL as source of truth for durable auth/account data.

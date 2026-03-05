@@ -12,6 +12,7 @@ This file defines enforceable repository-level rules for backend changes.
 - `controller` must not access DB directly.
 - `repository` must not contain HTTP concerns (`http.Request`, status codes, response envelopes).
 - `service` must not depend on concrete DB adapters directly; use repository interfaces.
+- Redis short-lived auth state must be accessed from service/middleware via dedicated store abstractions (`internal/store/redis`), not directly from controllers.
 
 ## 3) API Contract Rules
 - Success envelope:
@@ -34,6 +35,7 @@ This file defines enforceable repository-level rules for backend changes.
 - Protected endpoints must stay inside auth middleware groups.
 - User-scoped resources must enforce `user_id` filtering at repository query level.
 - Do not leak auth internals in error responses.
+- Refresh tokens must remain persisted in PostgreSQL and may be mirrored in Redis for active-state checks.
 
 ## 6) Database and Migrations
 - Schema changes must use SQL migrations under `migrations/`.

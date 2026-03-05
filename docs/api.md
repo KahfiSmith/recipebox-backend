@@ -44,3 +44,9 @@ Generate Swagger from annotations:
   - `DELETE /api/v1/shopping-items/{id}`
 
 For full request/response schemas, use generated Swagger files.
+
+## Auth Behavior Notes
+- `POST /api/v1/auth/login` and `POST /api/v1/auth/refresh` set refresh token in HTTP-only cookie (`refresh_token`), and do not expose refresh token in response body.
+- `POST /api/v1/auth/refresh` accepts refresh token from cookie first, and falls back to request body (`refreshToken`).
+- `POST /api/v1/auth/logout` revokes refresh token and clears cookie; when a bearer access token is provided, access session is revoked/blacklisted.
+- Access tokens are validated via JWT middleware and checked against Redis-backed auth state.

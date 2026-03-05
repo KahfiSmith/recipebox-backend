@@ -13,6 +13,7 @@ This document defines coding conventions for maintainable and predictable backen
 - `controller`: parse request, call service, map errors to HTTP response.
 - `service`: validation and business logic.
 - `repository`: persistence and query logic only.
+- `store/redis`: short-lived auth/session state and counters (rate-limit, blacklist, OTP, active token state).
 - `dto/models`: transport and persistence structures.
 
 ## 3) Error Handling
@@ -31,6 +32,7 @@ This document defines coding conventions for maintainable and predictable backen
 - For user-owned entities, query by both `id` and `user_id`.
 - On update/delete, return not-found when `RowsAffected == 0`.
 - Avoid leaking DB-specific errors to transport layer.
+- Keep Redis access behind store implementations/interfaces; avoid direct Redis client calls in controller/service business code.
 
 ## 6) API Consistency
 - Use shared envelope format:
