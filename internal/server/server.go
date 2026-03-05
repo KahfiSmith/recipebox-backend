@@ -8,20 +8,21 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/redis/go-redis/v9"
+	"gorm.io/gorm"
 	"recipebox-backend-go/internal/config"
 	"recipebox-backend-go/internal/controller"
 	"recipebox-backend-go/internal/db"
 	"recipebox-backend-go/internal/middleware"
 	"recipebox-backend-go/internal/notification"
-	"recipebox-backend-go/internal/redisx"
 	"recipebox-backend-go/internal/repository"
 	"recipebox-backend-go/internal/service"
-	"gorm.io/gorm"
+	redisstore "recipebox-backend-go/internal/store/redis"
 )
 
 type Server struct {
 	httpServer  *http.Server
-	redisClient *redisx.Client
+	redisClient *redis.Client
 }
 
 func NewServer(cfg config.Config, database *gorm.DB) (*Server, error) {
@@ -29,10 +30,17 @@ func NewServer(cfg config.Config, database *gorm.DB) (*Server, error) {
 		return nil, err
 	}
 
-	redisClient := redisx.NewClient(cfg.RedisAddr, cfg.RedisPassword, cfg.RedisDB)
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:         cfg.RedisAddr,
+		Password:     cfg.RedisPassword,
+		DB:           cfg.RedisDB,
+		DialTimeout:  5 * time.Second,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 5 * time.Second,
+	})
 	pingCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if err := redisClient.Ping(pingCtx); err != nil {
+	if err := redisClient.Ping(pingCtx).Err(); err != nil {
 		_ = redisClient.Close()
 		return nil, fmt.Errorf("connect redis: %w", err)
 	}
@@ -40,6 +48,8 @@ func NewServer(cfg config.Config, database *gorm.DB) (*Server, error) {
 	authRepo := repository.NewAuthGormRepository(database)
 	recipeBoxRepo := repository.NewRecipeBoxGormRepository(database)
 	authService := service.NewAuthService(authRepo, cfg.JWTSecret, cfg.AccessTokenTTL, cfg.RefreshTokenTTL, cfg.BcryptCost)
+	authStateStore := redisstore.NewAuthStateStore(redisClient)
+	authService.ConfigureAuthStateStore(authStateStore)
 	dashboardService := service.NewDashboardService(recipeBoxRepo)
 	if cfg.SMTPHost != "" {
 		sender := notification.NewSMTPSender(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUsername, cfg.SMTPPassword, cfg.SMTPFromEmail, cfg.SMTPFromName)
