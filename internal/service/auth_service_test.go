@@ -458,14 +458,14 @@ func TestParseAccessToken(t *testing.T) {
 	t.Parallel()
 
 	svc := NewAuthService(mockAuthRepo{}, strings.Repeat("f", 32), 15*time.Minute, 24*time.Hour, 10)
-	svc.now = func() time.Time { return time.Date(2026, 2, 23, 10, 0, 0, 0, time.UTC) }
+	svc.now = time.Now
 
-	token, _, err := svc.createAccessToken(42)
+	token, _, _, err := svc.createAccessToken(42)
 	if err != nil {
 		t.Fatalf("createAccessToken() error = %v", err)
 	}
 
-	userID, err := svc.ParseAccessToken(token)
+	userID, err := svc.ParseAccessToken(context.Background(), token)
 	if err != nil {
 		t.Fatalf("ParseAccessToken() error = %v", err)
 	}
@@ -473,7 +473,7 @@ func TestParseAccessToken(t *testing.T) {
 		t.Fatalf("expected user ID 42, got %d", userID)
 	}
 
-	if _, err := svc.ParseAccessToken("not-a-token"); err == nil {
+	if _, err := svc.ParseAccessToken(context.Background(), "not-a-token"); err == nil {
 		t.Fatalf("expected parse error for malformed token")
 	}
 }
@@ -500,7 +500,7 @@ func TestParseAccessTokenRejectsWrongAudience(t *testing.T) {
 		t.Fatalf("sign token: %v", err)
 	}
 
-	if _, err := svc.ParseAccessToken(signed); err == nil {
+	if _, err := svc.ParseAccessToken(context.Background(), signed); err == nil {
 		t.Fatalf("expected parse error for wrong audience")
 	}
 }

@@ -25,6 +25,7 @@ import (
 
 type AuthService struct {
 	repo             repository.AuthRepository
+	stateRepo        AuthStateStore
 	jwtSecret        []byte
 	accessTokenTTL   time.Duration
 	refreshTokenTTL  time.Duration
@@ -49,6 +50,7 @@ type EmailSender interface {
 func NewAuthService(repo repository.AuthRepository, jwtSecret string, accessTokenTTL, refreshTokenTTL time.Duration, bcryptCost int) *AuthService {
 	return &AuthService{
 		repo:             repo,
+		stateRepo:        NewNoopAuthStateStore(),
 		jwtSecret:        []byte(jwtSecret),
 		accessTokenTTL:   accessTokenTTL,
 		refreshTokenTTL:  refreshTokenTTL,
@@ -58,6 +60,14 @@ func NewAuthService(repo repository.AuthRepository, jwtSecret string, accessToke
 		now:              time.Now,
 		exposeTokens:     true,
 	}
+}
+
+func (s *AuthService) ConfigureAuthStateStore(stateRepo AuthStateStore) {
+	if stateRepo == nil {
+		s.stateRepo = NewNoopAuthStateStore()
+		return
+	}
+	s.stateRepo = stateRepo
 }
 
 func (s *AuthService) ConfigureEmailDelivery(sender EmailSender, frontendBaseURL string, exposeTokens bool) {
@@ -159,6 +169,13 @@ func (s *AuthService) Refresh(ctx context.Context, refreshToken, userAgent, ip s
 		}
 		return dto.TokenPair{}, models.ErrInvalidRefreshToken
 	}
+	isRefreshActive, err := s.stateRepo.HasRefreshToken(ctx, oldHash, userID)
+	if err != nil {
+		return dto.TokenPair{}, err
+	}
+	if !isRefreshActive {
+		return dto.TokenPair{}, models.ErrInvalidRefreshToken
+	}
 
 	user, err := s.repo.FindUserByID(ctx, userID)
 	if err != nil {
@@ -168,7 +185,7 @@ func (s *AuthService) Refresh(ctx context.Context, refreshToken, userAgent, ip s
 		return dto.TokenPair{}, err
 	}
 
-	accessToken, accessExp, err := s.createAccessToken(user.ID)
+	accessToken, accessExp, accessTokenID, err := s.createAccessToken(user.ID)
 	if err != nil {
 		return dto.TokenPair{}, err
 	}
@@ -186,16 +203,46 @@ func (s *AuthService) Refresh(ctx context.Context, refreshToken, userAgent, ip s
 		}
 		return dto.TokenPair{}, err
 	}
+	if err := s.stateRepo.RevokeRefreshToken(ctx, oldHash); err != nil {
+		return dto.TokenPair{}, err
+	}
+	if err := s.stateRepo.StoreRefreshToken(ctx, newHash, userID, time.Until(refreshExp)); err != nil {
+		return dto.TokenPair{}, err
+	}
+	if err := s.stateRepo.StoreAccessSession(ctx, accessTokenID, userID, time.Until(accessExp)); err != nil {
+		return dto.TokenPair{}, err
+	}
 
 	return dto.TokenPair{AccessToken: accessToken, AccessTokenExpiresAt: accessExp, RefreshToken: newRefreshToken, RefreshTokenExpiresAt: refreshExp}, nil
 }
 
-func (s *AuthService) Logout(ctx context.Context, refreshToken string) error {
+func (s *AuthService) Logout(ctx context.Context, refreshToken, accessToken string) error {
 	refreshToken = strings.TrimSpace(refreshToken)
-	if refreshToken == "" {
-		return nil
+	accessToken = strings.TrimSpace(accessToken)
+
+	if refreshToken != "" {
+		refreshHash := hashToken(refreshToken)
+		if err := s.repo.RevokeRefreshToken(ctx, refreshHash); err != nil {
+			return err
+		}
+		if err := s.stateRepo.RevokeRefreshToken(ctx, refreshHash); err != nil {
+			return err
+		}
 	}
-	return s.repo.RevokeRefreshToken(ctx, hashToken(refreshToken))
+
+	if accessToken != "" {
+		_, tokenID, expiresAt, err := s.parseAccessTokenClaims(accessToken)
+		if err == nil {
+			if err := s.stateRepo.RevokeAccessSession(ctx, tokenID); err != nil {
+				return err
+			}
+			if err := s.stateRepo.BlacklistAccessToken(ctx, tokenID, time.Until(expiresAt)); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func (s *AuthService) GetMe(ctx context.Context, userID int64) (models.User, error) {
@@ -231,7 +278,11 @@ func (s *AuthService) RequestEmailVerification(ctx context.Context, input dto.Em
 	}
 
 	expiresAt := s.now().Add(s.verifyEmailTTL)
-	if err := s.repo.SaveEmailVerificationToken(ctx, user.ID, hashToken(rawToken), expiresAt); err != nil {
+	tokenHash := hashToken(rawToken)
+	if err := s.repo.SaveEmailVerificationToken(ctx, user.ID, tokenHash, expiresAt); err != nil {
+		return dto.OneTimeTokenResponse{}, err
+	}
+	if err := s.stateRepo.StoreOTP(ctx, "verify_email", tokenHash, time.Until(expiresAt)); err != nil {
 		return dto.OneTimeTokenResponse{}, err
 	}
 
@@ -248,8 +299,11 @@ func (s *AuthService) VerifyEmail(ctx context.Context, token string) error {
 	if token == "" {
 		return models.ErrInvalidVerifyToken
 	}
-
-	if err := s.repo.ConsumeEmailVerificationToken(ctx, hashToken(token), s.now()); err != nil {
+	tokenHash := hashToken(token)
+	if _, err := s.stateRepo.ConsumeOTP(ctx, "verify_email", tokenHash); err != nil {
+		return err
+	}
+	if err := s.repo.ConsumeEmailVerificationToken(ctx, tokenHash, s.now()); err != nil {
 		if errors.Is(err, models.ErrNotFound) {
 			return models.ErrInvalidVerifyToken
 		}
@@ -278,7 +332,11 @@ func (s *AuthService) RequestPasswordReset(ctx context.Context, input dto.EmailR
 	}
 
 	expiresAt := s.now().Add(s.resetPasswordTTL)
-	if err := s.repo.SavePasswordResetToken(ctx, user.ID, hashToken(rawToken), expiresAt); err != nil {
+	tokenHash := hashToken(rawToken)
+	if err := s.repo.SavePasswordResetToken(ctx, user.ID, tokenHash, expiresAt); err != nil {
+		return dto.OneTimeTokenResponse{}, err
+	}
+	if err := s.stateRepo.StoreOTP(ctx, "password_reset", tokenHash, time.Until(expiresAt)); err != nil {
 		return dto.OneTimeTokenResponse{}, err
 	}
 
@@ -304,7 +362,11 @@ func (s *AuthService) ResetPassword(ctx context.Context, token, newPassword stri
 		return fmt.Errorf("hash new password: %w", err)
 	}
 
-	if err := s.repo.ConsumePasswordResetTokenAndUpdatePassword(ctx, hashToken(token), string(newPasswordHash), s.now()); err != nil {
+	tokenHash := hashToken(token)
+	if _, err := s.stateRepo.ConsumeOTP(ctx, "password_reset", tokenHash); err != nil {
+		return err
+	}
+	if err := s.repo.ConsumePasswordResetTokenAndUpdatePassword(ctx, tokenHash, string(newPasswordHash), s.now()); err != nil {
 		if errors.Is(err, models.ErrNotFound) {
 			return models.ErrInvalidResetToken
 		}
@@ -314,44 +376,31 @@ func (s *AuthService) ResetPassword(ctx context.Context, token, newPassword stri
 	return nil
 }
 
-func (s *AuthService) ParseAccessToken(tokenString string) (int64, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &jwt.RegisteredClaims{}, func(token *jwt.Token) (any, error) {
-		if token.Method.Alg() != jwt.SigningMethodHS256.Alg() {
-			return nil, fmt.Errorf("unexpected signing method")
-		}
-		return s.jwtSecret, nil
-	},
-		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}),
-		jwt.WithLeeway(5*time.Second),
-		jwt.WithIssuer(accessTokenIssuer),
-		jwt.WithAudience(accessTokenAudience),
-	)
+func (s *AuthService) ParseAccessToken(ctx context.Context, tokenString string) (int64, error) {
+	userID, tokenID, _, err := s.parseAccessTokenClaims(tokenString)
 	if err != nil {
-		return 0, fmt.Errorf("parse access token: %w", err)
+		return 0, err
 	}
-
-	claims, ok := token.Claims.(*jwt.RegisteredClaims)
-	if !ok || !token.Valid {
-		return 0, errors.New("invalid access token")
+	isBlacklisted, err := s.stateRepo.IsAccessTokenBlacklisted(ctx, tokenID)
+	if err != nil {
+		return 0, err
 	}
-	if claims.Subject == "" {
-		return 0, errors.New("missing subject")
+	if isBlacklisted {
+		return 0, errors.New("access token is blacklisted")
 	}
-
-	var userID int64
-	if _, err := fmt.Sscan(claims.Subject, &userID); err != nil {
-		return 0, errors.New("invalid subject")
+	hasSession, err := s.stateRepo.HasAccessSession(ctx, tokenID, userID)
+	if err != nil {
+		return 0, err
 	}
-
-	if claims.ID == "" || !strings.HasPrefix(claims.ID, "acc_") {
-		return 0, errors.New("invalid token id")
+	if !hasSession {
+		return 0, errors.New("access session not found")
 	}
 
 	return userID, nil
 }
 
 func (s *AuthService) issueTokens(ctx context.Context, userID int64, userAgent, ip string) (dto.TokenPair, error) {
-	accessToken, accessExp, err := s.createAccessToken(userID)
+	accessToken, accessExp, accessTokenID, err := s.createAccessToken(userID)
 	if err != nil {
 		return dto.TokenPair{}, err
 	}
@@ -362,19 +411,26 @@ func (s *AuthService) issueTokens(ctx context.Context, userID int64, userAgent, 
 	}
 
 	refreshExp := s.now().Add(s.refreshTokenTTL)
-	if err := s.repo.SaveRefreshToken(ctx, userID, hashToken(refreshToken), refreshExp, userAgent, sanitizeIP(ip)); err != nil {
+	refreshHash := hashToken(refreshToken)
+	if err := s.repo.SaveRefreshToken(ctx, userID, refreshHash, refreshExp, userAgent, sanitizeIP(ip)); err != nil {
+		return dto.TokenPair{}, err
+	}
+	if err := s.stateRepo.StoreRefreshToken(ctx, refreshHash, userID, time.Until(refreshExp)); err != nil {
+		return dto.TokenPair{}, err
+	}
+	if err := s.stateRepo.StoreAccessSession(ctx, accessTokenID, userID, time.Until(accessExp)); err != nil {
 		return dto.TokenPair{}, err
 	}
 
 	return dto.TokenPair{AccessToken: accessToken, AccessTokenExpiresAt: accessExp, RefreshToken: refreshToken, RefreshTokenExpiresAt: refreshExp}, nil
 }
 
-func (s *AuthService) createAccessToken(userID int64) (string, time.Time, error) {
+func (s *AuthService) createAccessToken(userID int64) (string, time.Time, string, error) {
 	now := s.now()
 	expiresAt := now.Add(s.accessTokenTTL)
 	jti, err := generateTokenString(24)
 	if err != nil {
-		return "", time.Time{}, fmt.Errorf("generate token id: %w", err)
+		return "", time.Time{}, "", fmt.Errorf("generate token id: %w", err)
 	}
 
 	claims := jwt.RegisteredClaims{
@@ -389,9 +445,46 @@ func (s *AuthService) createAccessToken(userID int64) (string, time.Time, error)
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString(s.jwtSecret)
 	if err != nil {
-		return "", time.Time{}, fmt.Errorf("sign access token: %w", err)
+		return "", time.Time{}, "", fmt.Errorf("sign access token: %w", err)
 	}
-	return tokenString, expiresAt, nil
+	return tokenString, expiresAt, claims.ID, nil
+}
+
+func (s *AuthService) parseAccessTokenClaims(tokenString string) (int64, string, time.Time, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &jwt.RegisteredClaims{}, func(token *jwt.Token) (any, error) {
+		if token.Method.Alg() != jwt.SigningMethodHS256.Alg() {
+			return nil, fmt.Errorf("unexpected signing method")
+		}
+		return s.jwtSecret, nil
+	},
+		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}),
+		jwt.WithLeeway(5*time.Second),
+		jwt.WithIssuer(accessTokenIssuer),
+		jwt.WithAudience(accessTokenAudience),
+	)
+	if err != nil {
+		return 0, "", time.Time{}, fmt.Errorf("parse access token: %w", err)
+	}
+
+	claims, ok := token.Claims.(*jwt.RegisteredClaims)
+	if !ok || !token.Valid {
+		return 0, "", time.Time{}, errors.New("invalid access token")
+	}
+	if claims.Subject == "" {
+		return 0, "", time.Time{}, errors.New("missing subject")
+	}
+	var userID int64
+	if _, err := fmt.Sscan(claims.Subject, &userID); err != nil {
+		return 0, "", time.Time{}, errors.New("invalid subject")
+	}
+	if claims.ID == "" || !strings.HasPrefix(claims.ID, "acc_") {
+		return 0, "", time.Time{}, errors.New("invalid token id")
+	}
+	if claims.ExpiresAt == nil {
+		return 0, "", time.Time{}, errors.New("missing expiry")
+	}
+
+	return userID, claims.ID, claims.ExpiresAt.Time, nil
 }
 
 func normalizeEmail(email string) (string, error) {
