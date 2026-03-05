@@ -51,6 +51,8 @@ func NewServer(cfg config.Config, database *gorm.DB) (*Server, error) {
 	authStateStore := redisstore.NewAuthStateStore(redisClient)
 	authService.ConfigureAuthStateStore(authStateStore)
 	dashboardService := service.NewDashboardService(recipeBoxRepo)
+	dashboardCacheStore := redisstore.NewDashboardCacheStore(redisClient, 60*time.Second)
+	dashboardService.ConfigureDashboardCacheStore(dashboardCacheStore)
 	if cfg.SMTPHost != "" {
 		sender := notification.NewSMTPSender(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUsername, cfg.SMTPPassword, cfg.SMTPFromEmail, cfg.SMTPFromName)
 		authService.ConfigureEmailDelivery(sender, cfg.FrontendBaseURL, cfg.AuthDebugExposeTokens)
