@@ -120,6 +120,68 @@ func TestDashboardServicePropagatesRepositoryErrors(t *testing.T) {
 	}
 }
 
+func TestDashboardServiceGetDashboardUsesCacheWhenAvailable(t *testing.T) {
+	t.Parallel()
+
+	cache := &fakeDashboardCacheStore{
+		cached: dto.DashboardResponse{
+			Summary: dto.DashboardSummary{RecipeCount: 99},
+		},
+		found: true,
+	}
+	svc := NewDashboardService(fakeRecipeBoxRepository{err: errors.New("repo should not be called")})
+	svc.ConfigureDashboardCacheStore(cache)
+
+	resp, err := svc.GetDashboard(context.Background(), 42)
+	if err != nil {
+		t.Fatalf("GetDashboard returned error: %v", err)
+	}
+	if resp.Summary.RecipeCount != 99 {
+		t.Fatalf("expected cached response")
+	}
+}
+
+func TestDashboardServiceMutationsInvalidateDashboardCache(t *testing.T) {
+	t.Parallel()
+
+	cache := &fakeDashboardCacheStore{}
+	svc := NewDashboardService(fakeRecipeBoxRepository{})
+	svc.ConfigureDashboardCacheStore(cache)
+
+	if _, err := svc.CreateRecipe(context.Background(), 42, dto.UpsertRecipeRequest{Name: "A", Category: "C", PrepTime: 5}); err != nil {
+		t.Fatalf("CreateRecipe returned error: %v", err)
+	}
+	if _, err := svc.UpdateMealPlan(context.Background(), 42, 11, dto.UpsertMealPlanRequest{Day: "Monday", MealName: "M", Servings: 2}); err != nil {
+		t.Fatalf("UpdateMealPlan returned error: %v", err)
+	}
+	if err := svc.DeleteShoppingItem(context.Background(), 42, 99); err != nil {
+		t.Fatalf("DeleteShoppingItem returned error: %v", err)
+	}
+
+	if cache.invalidateCalls == 0 {
+		t.Fatalf("expected dashboard cache invalidation calls")
+	}
+}
+
+type fakeDashboardCacheStore struct {
+	cached          dto.DashboardResponse
+	found           bool
+	invalidateCalls int
+}
+
+func (f fakeDashboardCacheStore) GetDashboard(_ context.Context, _ int64) (dto.DashboardResponse, bool, error) {
+	return f.cached, f.found, nil
+}
+
+func (f fakeDashboardCacheStore) SetDashboard(_ context.Context, _ int64, _ dto.DashboardResponse) error {
+	return nil
+}
+
+func (f *fakeDashboardCacheStore) InvalidateDashboard(_ context.Context, _ int64) error {
+	f.invalidateCalls++
+	return nil
+}
+
 type fakeRecipeBoxRepository struct {
 	recipes       []models.Recipe
 	mealPlans     []models.MealPlan
@@ -132,6 +194,45 @@ func (f fakeRecipeBoxRepository) ListRecipes(_ context.Context, _ int64) ([]mode
 		return nil, f.err
 	}
 	return cloneRecipes(f.recipes), nil
+}
+
+func TestDashboardServiceListRecipesPageUsesPagination(t *testing.T) {
+	t.Parallel()
+
+	repo := fakeRecipeBoxRepository{
+		recipes: []models.Recipe{
+			{ID: 1, UserID: 42, Name: "A"},
+			{ID: 2, UserID: 42, Name: "B"},
+			{ID: 3, UserID: 42, Name: "C"},
+		},
+	}
+	svc := NewDashboardService(repo)
+
+	recipes, err := svc.ListRecipesPage(context.Background(), 42, 2, 1)
+	if err != nil {
+		t.Fatalf("ListRecipesPage returned error: %v", err)
+	}
+	if len(recipes) != 2 {
+		t.Fatalf("expected 2 recipes, got %d", len(recipes))
+	}
+	if recipes[0].ID != 2 || recipes[1].ID != 3 {
+		t.Fatalf("unexpected paginated results: %+v", recipes)
+	}
+}
+
+func (f fakeRecipeBoxRepository) ListRecipesPage(_ context.Context, _ int64, limit, offset int) ([]models.Recipe, error) {
+	if f.err != nil {
+		return nil, f.err
+	}
+	recipes := cloneRecipes(f.recipes)
+	if offset >= len(recipes) {
+		return []models.Recipe{}, nil
+	}
+	end := offset + limit
+	if end > len(recipes) {
+		end = len(recipes)
+	}
+	return recipes[offset:end], nil
 }
 
 func TestDashboardServiceCreateRecipeValidatesInput(t *testing.T) {
@@ -177,6 +278,21 @@ func (f fakeRecipeBoxRepository) ListMealPlans(_ context.Context, _ int64) ([]mo
 	return cloneMealPlans(f.mealPlans), nil
 }
 
+func (f fakeRecipeBoxRepository) ListMealPlansPage(_ context.Context, _ int64, limit, offset int) ([]models.MealPlan, error) {
+	if f.err != nil {
+		return nil, f.err
+	}
+	mealPlans := cloneMealPlans(f.mealPlans)
+	if offset >= len(mealPlans) {
+		return []models.MealPlan{}, nil
+	}
+	end := offset + limit
+	if end > len(mealPlans) {
+		end = len(mealPlans)
+	}
+	return mealPlans[offset:end], nil
+}
+
 func (f fakeRecipeBoxRepository) CreateMealPlan(_ context.Context, userID int64, mealPlan models.MealPlan) (models.MealPlan, error) {
 	if f.err != nil {
 		return models.MealPlan{}, f.err
@@ -204,6 +320,21 @@ func (f fakeRecipeBoxRepository) ListShoppingItems(_ context.Context, _ int64) (
 		return nil, f.err
 	}
 	return cloneShoppingItems(f.shoppingItems), nil
+}
+
+func (f fakeRecipeBoxRepository) ListShoppingItemsPage(_ context.Context, _ int64, limit, offset int) ([]models.ShoppingItem, error) {
+	if f.err != nil {
+		return nil, f.err
+	}
+	items := cloneShoppingItems(f.shoppingItems)
+	if offset >= len(items) {
+		return []models.ShoppingItem{}, nil
+	}
+	end := offset + limit
+	if end > len(items) {
+		end = len(items)
+	}
+	return items[offset:end], nil
 }
 
 func (f fakeRecipeBoxRepository) CreateShoppingItem(_ context.Context, userID int64, item models.ShoppingItem) (models.ShoppingItem, error) {
