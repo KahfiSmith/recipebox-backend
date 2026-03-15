@@ -35,8 +35,6 @@ func NewDashboardController(service *service.DashboardService) *DashboardControl
 // @Produce json
 // @Security BearerAuth
 // @Success 200 {object} dto.DashboardEnvelope
-// @Failure 401 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
 // @Router /api/v1/dashboard [get]
 func (h *DashboardController) GetDashboard(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.userIDFromRequest(r)
@@ -63,9 +61,6 @@ func (h *DashboardController) GetDashboard(w http.ResponseWriter, r *http.Reques
 // @Param limit query int false "Max items per page (default 20, max 100)"
 // @Param offset query int false "Pagination offset (default 0)"
 // @Success 200 {object} dto.RecipesEnvelope
-// @Failure 401 {object} dto.ErrorResponse
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
 // @Router /api/v1/recipes [get]
 func (h *DashboardController) GetRecipes(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.userIDFromRequest(r)
@@ -97,9 +92,6 @@ func (h *DashboardController) GetRecipes(w http.ResponseWriter, r *http.Request)
 // @Security BearerAuth
 // @Param payload body dto.UpsertRecipeRequest true "Recipe payload"
 // @Success 201 {object} dto.RecipeEnvelope
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 401 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
 // @Router /api/v1/recipes [post]
 func (h *DashboardController) CreateRecipe(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.userIDFromRequest(r)
@@ -133,10 +125,6 @@ func (h *DashboardController) CreateRecipe(w http.ResponseWriter, r *http.Reques
 // @Param id path int true "Recipe ID"
 // @Param payload body dto.UpsertRecipeRequest true "Recipe payload"
 // @Success 200 {object} dto.RecipeEnvelope
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 401 {object} dto.ErrorResponse
-// @Failure 404 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
 // @Router /api/v1/recipes/{id} [put]
 func (h *DashboardController) UpdateRecipe(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.userIDFromRequest(r)
@@ -173,10 +161,6 @@ func (h *DashboardController) UpdateRecipe(w http.ResponseWriter, r *http.Reques
 // @Security BearerAuth
 // @Param id path int true "Recipe ID"
 // @Success 200 {object} dto.MessageResponse
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 401 {object} dto.ErrorResponse
-// @Failure 404 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
 // @Router /api/v1/recipes/{id} [delete]
 func (h *DashboardController) DeleteRecipe(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.userIDFromRequest(r)
@@ -207,9 +191,6 @@ func (h *DashboardController) DeleteRecipe(w http.ResponseWriter, r *http.Reques
 // @Param limit query int false "Max items per page (default 20, max 100)"
 // @Param offset query int false "Pagination offset (default 0)"
 // @Success 200 {object} dto.MealPlansEnvelope
-// @Failure 401 {object} dto.ErrorResponse
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
 // @Router /api/v1/meal-plans [get]
 func (h *DashboardController) GetMealPlans(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.userIDFromRequest(r)
@@ -241,9 +222,6 @@ func (h *DashboardController) GetMealPlans(w http.ResponseWriter, r *http.Reques
 // @Security BearerAuth
 // @Param payload body dto.UpsertMealPlanRequest true "Meal plan payload"
 // @Success 201 {object} dto.MealPlanEnvelope
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 401 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
 // @Router /api/v1/meal-plans [post]
 func (h *DashboardController) CreateMealPlan(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.userIDFromRequest(r)
@@ -277,10 +255,6 @@ func (h *DashboardController) CreateMealPlan(w http.ResponseWriter, r *http.Requ
 // @Param id path int true "Meal Plan ID"
 // @Param payload body dto.UpsertMealPlanRequest true "Meal plan payload"
 // @Success 200 {object} dto.MealPlanEnvelope
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 401 {object} dto.ErrorResponse
-// @Failure 404 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
 // @Router /api/v1/meal-plans/{id} [put]
 func (h *DashboardController) UpdateMealPlan(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.userIDFromRequest(r)
@@ -317,10 +291,6 @@ func (h *DashboardController) UpdateMealPlan(w http.ResponseWriter, r *http.Requ
 // @Security BearerAuth
 // @Param id path int true "Meal Plan ID"
 // @Success 200 {object} dto.MessageResponse
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 401 {object} dto.ErrorResponse
-// @Failure 404 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
 // @Router /api/v1/meal-plans/{id} [delete]
 func (h *DashboardController) DeleteMealPlan(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.userIDFromRequest(r)
@@ -351,9 +321,6 @@ func (h *DashboardController) DeleteMealPlan(w http.ResponseWriter, r *http.Requ
 // @Param limit query int false "Max items per page (default 20, max 100)"
 // @Param offset query int false "Pagination offset (default 0)"
 // @Success 200 {object} dto.ShoppingItemsEnvelope
-// @Failure 401 {object} dto.ErrorResponse
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
 // @Router /api/v1/shopping-items [get]
 func (h *DashboardController) GetShoppingItems(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.userIDFromRequest(r)
@@ -385,9 +352,6 @@ func (h *DashboardController) GetShoppingItems(w http.ResponseWriter, r *http.Re
 // @Security BearerAuth
 // @Param payload body dto.UpsertShoppingItemRequest true "Shopping item payload"
 // @Success 201 {object} dto.ShoppingItemEnvelope
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 401 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
 // @Router /api/v1/shopping-items [post]
 func (h *DashboardController) CreateShoppingItem(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.userIDFromRequest(r)
@@ -421,10 +385,6 @@ func (h *DashboardController) CreateShoppingItem(w http.ResponseWriter, r *http.
 // @Param id path int true "Shopping Item ID"
 // @Param payload body dto.UpsertShoppingItemRequest true "Shopping item payload"
 // @Success 200 {object} dto.ShoppingItemEnvelope
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 401 {object} dto.ErrorResponse
-// @Failure 404 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
 // @Router /api/v1/shopping-items/{id} [put]
 func (h *DashboardController) UpdateShoppingItem(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.userIDFromRequest(r)
@@ -461,10 +421,6 @@ func (h *DashboardController) UpdateShoppingItem(w http.ResponseWriter, r *http.
 // @Security BearerAuth
 // @Param id path int true "Shopping Item ID"
 // @Success 200 {object} dto.MessageResponse
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 401 {object} dto.ErrorResponse
-// @Failure 404 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
 // @Router /api/v1/shopping-items/{id} [delete]
 func (h *DashboardController) DeleteShoppingItem(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.userIDFromRequest(r)

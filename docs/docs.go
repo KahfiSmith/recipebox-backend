@@ -45,30 +45,6 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.AuthEnvelope"
                         }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
                     }
                 }
             }
@@ -102,18 +78,6 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.MessageResponse"
                         }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
                     }
                 }
             }
@@ -138,24 +102,6 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.UserEnvelope"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
                         }
                     }
                 }
@@ -191,18 +137,6 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.OneTimeTokenEnvelope"
                         }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
                     }
                 }
             }
@@ -237,18 +171,6 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.MessageResponse"
                         }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
                     }
                 }
             }
@@ -281,24 +203,6 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.TokenEnvelope"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
                         }
                     }
                 }
@@ -334,24 +238,6 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.RegisterEnvelope"
                         }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "409": {
-                        "description": "Conflict",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
                     }
                 }
             }
@@ -385,18 +271,6 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.MessageResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
                         }
                     }
                 }
@@ -432,18 +306,6 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.OneTimeTokenEnvelope"
                         }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
                     }
                 }
             }
@@ -468,18 +330,6 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.DashboardEnvelope"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
                         }
                     }
                 }
@@ -520,24 +370,6 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.MealPlansEnvelope"
                         }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
                     }
                 }
             },
@@ -574,24 +406,6 @@ const docTemplate = `{
                         "description": "Created",
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.MealPlanEnvelope"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
                         }
                     }
                 }
@@ -639,30 +453,6 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.MealPlanEnvelope"
                         }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
                     }
                 }
             },
@@ -694,30 +484,6 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.MessageResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
                         }
                     }
                 }
@@ -758,24 +524,6 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.RecipesEnvelope"
                         }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
                     }
                 }
             },
@@ -812,24 +560,6 @@ const docTemplate = `{
                         "description": "Created",
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.RecipeEnvelope"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
                         }
                     }
                 }
@@ -877,30 +607,6 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.RecipeEnvelope"
                         }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
                     }
                 }
             },
@@ -932,30 +638,6 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.MessageResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
                         }
                     }
                 }
@@ -996,24 +678,6 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.ShoppingItemsEnvelope"
                         }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
                     }
                 }
             },
@@ -1050,24 +714,6 @@ const docTemplate = `{
                         "description": "Created",
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.ShoppingItemEnvelope"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
                         }
                     }
                 }
@@ -1115,30 +761,6 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.ShoppingItemEnvelope"
                         }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
                     }
                 }
             },
@@ -1170,30 +792,6 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.MessageResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
                         }
                     }
                 }
