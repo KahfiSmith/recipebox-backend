@@ -37,17 +37,57 @@ func OpenPostgres(ctx context.Context, dsn string) (*gorm.DB, error) {
 }
 
 func AutoMigrate(ctx context.Context, database *gorm.DB) error {
-	if err := database.WithContext(ctx).AutoMigrate(
-		&models.User{},
-		&models.RefreshToken{},
-		&models.EmailVerificationToken{},
-		&models.PasswordResetToken{},
-	); err != nil {
-		return fmt.Errorf("auto migrate auth: %w", err)
+	if err := ensureAuthSchema(ctx, database); err != nil {
+		return fmt.Errorf("ensure auth schema: %w", err)
 	}
 
 	if err := AutoMigrateRecipeBox(ctx, database); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func ensureAuthSchema(ctx context.Context, database *gorm.DB) error {
+	migrator := database.WithContext(ctx).Migrator()
+
+	requiredTables := []struct {
+		model   any
+		name    string
+		columns []string
+	}{
+		{
+			model:   &models.User{},
+			name:    "users",
+			columns: []string{"id", "name", "email", "password_hash", "email_verified_at", "created_at", "updated_at"},
+		},
+		{
+			model:   &models.RefreshToken{},
+			name:    "refresh_tokens",
+			columns: []string{"id", "user_id", "token_hash", "expires_at", "user_agent", "ip_address", "revoked_at", "replaced_by_token_hash", "created_at"},
+		},
+		{
+			model:   &models.EmailVerificationToken{},
+			name:    "email_verification_tokens",
+			columns: []string{"id", "user_id", "token_hash", "expires_at", "consumed_at", "created_at"},
+		},
+		{
+			model:   &models.PasswordResetToken{},
+			name:    "password_reset_tokens",
+			columns: []string{"id", "user_id", "token_hash", "expires_at", "consumed_at", "created_at"},
+		},
+	}
+
+	for _, table := range requiredTables {
+		if !migrator.HasTable(table.model) {
+			return fmt.Errorf("missing table %q; run bash scripts/migrate-up.sh", table.name)
+		}
+
+		for _, column := range table.columns {
+			if !migrator.HasColumn(table.model, column) {
+				return fmt.Errorf("missing column %q on table %q; run bash scripts/migrate-up.sh", column, table.name)
+			}
+		}
 	}
 
 	return nil

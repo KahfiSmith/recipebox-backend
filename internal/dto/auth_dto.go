@@ -6,31 +6,31 @@ import (
 )
 
 type RegisterRequest struct {
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Name     string `json:"name" example:"Kahfi Smith"`
+	Email    string `json:"email" example:"alkahfii2018@gmail.com"`
+	Password string `json:"password" example:"secret123"`
 }
 
 type LoginRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email    string `json:"email" example:"alkahfii2018@gmail.com"`
+	Password string `json:"password" example:"secret123"`
 }
 
 type EmailRequest struct {
-	Email string `json:"email"`
+	Email string `json:"email" example:"alkahfii2018@gmail.com"`
 }
 
 type RefreshRequest struct {
-	RefreshToken string `json:"refreshToken"`
+	RefreshToken string `json:"refreshToken" example:"refresh-token-sample"`
 }
 
 type VerifyEmailRequest struct {
-	Token string `json:"token"`
+	Token string `json:"token" example:"verify-token-sample"`
 }
 
 type ResetPasswordRequest struct {
-	Token       string `json:"token"`
-	NewPassword string `json:"newPassword"`
+	Token       string `json:"token" example:"reset-token-sample"`
+	NewPassword string `json:"newPassword" example:"newSecret123"`
 }
 
 type TokenPair struct {
