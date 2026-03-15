@@ -1335,6 +1335,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "email": {
+                    "example": "alkahfii2018@gmail.com",
                     "type": "string"
                 }
             }
@@ -1351,9 +1352,11 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "email": {
+                    "example": "alkahfii2018@gmail.com",
                     "type": "string"
                 },
                 "password": {
+                    "example": "secret123",
                     "type": "string"
                 }
             }
@@ -1430,6 +1433,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "refreshToken": {
+                    "example": "refresh-token-sample",
                     "type": "string"
                 }
             }
@@ -1446,12 +1450,15 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "email": {
+                    "example": "alkahfii2018@gmail.com",
                     "type": "string"
                 },
                 "name": {
+                    "example": "Kahfi Smith",
                     "type": "string"
                 },
                 "password": {
+                    "example": "secret123",
                     "type": "string"
                 }
             }
@@ -1468,9 +1475,11 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "newPassword": {
+                    "example": "newSecret123",
                     "type": "string"
                 },
                 "token": {
+                    "example": "reset-token-sample",
                     "type": "string"
                 }
             }
@@ -1582,6 +1591,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "token": {
+                    "example": "verify-token-sample",
                     "type": "string"
                 }
             }
@@ -1622,7 +1632,7 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "",
+	Host:             "localhost:8080",
 	BasePath:         "/",
 	Schemes:          []string{"http", "https"},
 	Title:            "RecipeBox Backend API",

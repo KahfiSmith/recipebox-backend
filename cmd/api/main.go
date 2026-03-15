@@ -16,6 +16,7 @@ import (
 // @title RecipeBox Backend API
 // @version 1.0
 // @description API for RecipeBox backend services.
+// @host localhost:8080
 // @BasePath /
 // @schemes http https
 // @securityDefinitions.apikey BearerAuth

@@ -1,4 +1,5 @@
 basePath: /
+host: localhost:8080
 definitions:
   recipebox-backend-go_internal_dto.AuthEnvelope:
     properties:
@@ -87,6 +88,7 @@ definitions:
   recipebox-backend-go_internal_dto.EmailRequest:
     properties:
       email:
+        example: alkahfii2018@gmail.com
         type: string
     type: object
   recipebox-backend-go_internal_dto.ErrorResponse:
@@ -97,8 +99,10 @@ definitions:
   recipebox-backend-go_internal_dto.LoginRequest:
     properties:
       email:
+        example: alkahfii2018@gmail.com
         type: string
       password:
+        example: secret123
         type: string
     type: object
   recipebox-backend-go_internal_dto.MealPlanEnvelope:
@@ -147,6 +151,7 @@ definitions:
   recipebox-backend-go_internal_dto.RefreshRequest:
     properties:
       refreshToken:
+        example: refresh-token-sample
         type: string
     type: object
   recipebox-backend-go_internal_dto.RegisterEnvelope:
@@ -157,10 +162,13 @@ definitions:
   recipebox-backend-go_internal_dto.RegisterRequest:
     properties:
       email:
+        example: alkahfii2018@gmail.com
         type: string
       name:
+        example: Kahfi Smith
         type: string
       password:
+        example: secret123
         type: string
     type: object
   recipebox-backend-go_internal_dto.RegisterResponse:
@@ -171,8 +179,10 @@ definitions:
   recipebox-backend-go_internal_dto.ResetPasswordRequest:
     properties:
       newPassword:
+        example: newSecret123
         type: string
       token:
+        example: reset-token-sample
         type: string
     type: object
   recipebox-backend-go_internal_dto.ShoppingItemEnvelope:
@@ -244,6 +254,7 @@ definitions:
   recipebox-backend-go_internal_dto.VerifyEmailRequest:
     properties:
       token:
+        example: verify-token-sample
         type: string
     type: object
   recipebox-backend-go_internal_models.User:
