@@ -66,7 +66,7 @@ func NewServer(cfg config.Config, database *gorm.DB) (*Server, error) {
 	dashboardController := controller.NewDashboardController(dashboardService)
 
 	authRateLimitStore := middleware.NewRedisAuthRateLimitStore(redisClient)
-	router := NewRouter(authController, dashboardController, authService, authRateLimitStore, cfg.AuthRateLimitPerMinute, cfg.TrustedProxyCIDRs)
+	router := NewRouter(authController, dashboardController, authService, authRateLimitStore, cfg.AuthRateLimitPerMinute, cfg.TrustedProxyCIDRs, cfg.FrontendBaseURL)
 	httpServer := &http.Server{
 		Addr:         cfg.HTTPAddr,
 		Handler:      router,
