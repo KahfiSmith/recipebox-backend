@@ -202,6 +202,31 @@ func TestLoginSetsRefreshCookieAndHidesTokenInBody(t *testing.T) {
 	}
 }
 
+func TestLoginReturnsBadRequestForInvalidEmailInput(t *testing.T) {
+	t.Parallel()
+
+	authService := service.NewAuthService(mockAuthRepo{}, strings.Repeat("a", 32), 15*time.Minute, 24*time.Hour, bcrypt.MinCost)
+	controller := NewAuthController(authService, true, 24*time.Hour, nil)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", strings.NewReader(`{"email":"not-an-email","password":"secret123"}`))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	controller.Login(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", rec.Code)
+	}
+
+	var payload map[string]string
+	if err := json.NewDecoder(rec.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if payload["error"] != "invalid email" {
+		t.Fatalf("expected invalid email error, got %q", payload["error"])
+	}
+}
+
 func TestRefreshUsesCookieAndRotatesRefreshToken(t *testing.T) {
 	t.Parallel()
 

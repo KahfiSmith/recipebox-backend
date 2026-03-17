@@ -85,6 +85,8 @@ func (h *AuthController) Login(w http.ResponseWriter, r *http.Request) {
 	resp, err := h.service.Login(r.Context(), input, r.UserAgent(), extractRequestIP(r, h.trustedProxies))
 	if err != nil {
 		switch {
+		case models.IsValidationError(err):
+			utils.Error(w, http.StatusBadRequest, err.Error())
 		case errors.Is(err, models.ErrInvalidCredentials):
 			utils.Error(w, http.StatusUnauthorized, err.Error())
 		case errors.Is(err, models.ErrEmailNotVerified):
@@ -166,7 +168,7 @@ func (h *AuthController) Logout(w http.ResponseWriter, r *http.Request) {
 // @Description Return current authenticated user profile.
 // @Tags Auth
 // @Produce json
-// @Security BearerAuth
+// @Param Authorization header string true "Bearer access token. Format: Bearer <access_token>"
 // @Success 200 {object} dto.UserEnvelope
 // @Router /api/v1/auth/me [get]
 func (h *AuthController) Me(w http.ResponseWriter, r *http.Request) {

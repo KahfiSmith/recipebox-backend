@@ -33,7 +33,7 @@ func NewDashboardController(service *service.DashboardService) *DashboardControl
 // @Description Return recipes, meal plans, shopping items and summary in one payload.
 // @Tags Dashboard
 // @Produce json
-// @Security BearerAuth
+// @Param Authorization header string true "Bearer access token. Format: Bearer <access_token>"
 // @Success 200 {object} dto.DashboardEnvelope
 // @Router /api/v1/dashboard [get]
 func (h *DashboardController) GetDashboard(w http.ResponseWriter, r *http.Request) {
@@ -57,7 +57,7 @@ func (h *DashboardController) GetDashboard(w http.ResponseWriter, r *http.Reques
 // @Description Return recipes list used by dashboard/recipes page.
 // @Tags Recipes
 // @Produce json
-// @Security BearerAuth
+// @Param Authorization header string true "Bearer access token. Format: Bearer <access_token>"
 // @Param limit query int false "Max items per page (default 20, max 100)"
 // @Param offset query int false "Pagination offset (default 0)"
 // @Success 200 {object} dto.RecipesEnvelope
@@ -89,7 +89,7 @@ func (h *DashboardController) GetRecipes(w http.ResponseWriter, r *http.Request)
 // @Tags Recipes
 // @Accept json
 // @Produce json
-// @Security BearerAuth
+// @Param Authorization header string true "Bearer access token. Format: Bearer <access_token>"
 // @Param payload body dto.UpsertRecipeRequest true "Recipe payload"
 // @Success 201 {object} dto.RecipeEnvelope
 // @Router /api/v1/recipes [post]
@@ -121,7 +121,7 @@ func (h *DashboardController) CreateRecipe(w http.ResponseWriter, r *http.Reques
 // @Tags Recipes
 // @Accept json
 // @Produce json
-// @Security BearerAuth
+// @Param Authorization header string true "Bearer access token. Format: Bearer <access_token>"
 // @Param id path int true "Recipe ID"
 // @Param payload body dto.UpsertRecipeRequest true "Recipe payload"
 // @Success 200 {object} dto.RecipeEnvelope
@@ -158,7 +158,7 @@ func (h *DashboardController) UpdateRecipe(w http.ResponseWriter, r *http.Reques
 // @Description Delete a recipe menu item by ID.
 // @Tags Recipes
 // @Produce json
-// @Security BearerAuth
+// @Param Authorization header string true "Bearer access token. Format: Bearer <access_token>"
 // @Param id path int true "Recipe ID"
 // @Success 200 {object} dto.MessageResponse
 // @Router /api/v1/recipes/{id} [delete]
@@ -187,7 +187,7 @@ func (h *DashboardController) DeleteRecipe(w http.ResponseWriter, r *http.Reques
 // @Description Return meal plans list used by dashboard/meal-plan page.
 // @Tags Meal Plans
 // @Produce json
-// @Security BearerAuth
+// @Param Authorization header string true "Bearer access token. Format: Bearer <access_token>"
 // @Param limit query int false "Max items per page (default 20, max 100)"
 // @Param offset query int false "Pagination offset (default 0)"
 // @Success 200 {object} dto.MealPlansEnvelope
@@ -219,7 +219,7 @@ func (h *DashboardController) GetMealPlans(w http.ResponseWriter, r *http.Reques
 // @Tags Meal Plans
 // @Accept json
 // @Produce json
-// @Security BearerAuth
+// @Param Authorization header string true "Bearer access token. Format: Bearer <access_token>"
 // @Param payload body dto.UpsertMealPlanRequest true "Meal plan payload"
 // @Success 201 {object} dto.MealPlanEnvelope
 // @Router /api/v1/meal-plans [post]
@@ -251,7 +251,7 @@ func (h *DashboardController) CreateMealPlan(w http.ResponseWriter, r *http.Requ
 // @Tags Meal Plans
 // @Accept json
 // @Produce json
-// @Security BearerAuth
+// @Param Authorization header string true "Bearer access token. Format: Bearer <access_token>"
 // @Param id path int true "Meal Plan ID"
 // @Param payload body dto.UpsertMealPlanRequest true "Meal plan payload"
 // @Success 200 {object} dto.MealPlanEnvelope
@@ -288,7 +288,7 @@ func (h *DashboardController) UpdateMealPlan(w http.ResponseWriter, r *http.Requ
 // @Description Delete a meal plan menu item by ID.
 // @Tags Meal Plans
 // @Produce json
-// @Security BearerAuth
+// @Param Authorization header string true "Bearer access token. Format: Bearer <access_token>"
 // @Param id path int true "Meal Plan ID"
 // @Success 200 {object} dto.MessageResponse
 // @Router /api/v1/meal-plans/{id} [delete]
@@ -317,7 +317,7 @@ func (h *DashboardController) DeleteMealPlan(w http.ResponseWriter, r *http.Requ
 // @Description Return shopping items list used by dashboard/shopping page.
 // @Tags Shopping Items
 // @Produce json
-// @Security BearerAuth
+// @Param Authorization header string true "Bearer access token. Format: Bearer <access_token>"
 // @Param limit query int false "Max items per page (default 20, max 100)"
 // @Param offset query int false "Pagination offset (default 0)"
 // @Success 200 {object} dto.ShoppingItemsEnvelope
@@ -349,7 +349,7 @@ func (h *DashboardController) GetShoppingItems(w http.ResponseWriter, r *http.Re
 // @Tags Shopping Items
 // @Accept json
 // @Produce json
-// @Security BearerAuth
+// @Param Authorization header string true "Bearer access token. Format: Bearer <access_token>"
 // @Param payload body dto.UpsertShoppingItemRequest true "Shopping item payload"
 // @Success 201 {object} dto.ShoppingItemEnvelope
 // @Router /api/v1/shopping-items [post]
@@ -381,7 +381,7 @@ func (h *DashboardController) CreateShoppingItem(w http.ResponseWriter, r *http.
 // @Tags Shopping Items
 // @Accept json
 // @Produce json
-// @Security BearerAuth
+// @Param Authorization header string true "Bearer access token. Format: Bearer <access_token>"
 // @Param id path int true "Shopping Item ID"
 // @Param payload body dto.UpsertShoppingItemRequest true "Shopping item payload"
 // @Success 200 {object} dto.ShoppingItemEnvelope
@@ -418,7 +418,7 @@ func (h *DashboardController) UpdateShoppingItem(w http.ResponseWriter, r *http.
 // @Description Delete a shopping item menu entry by ID.
 // @Tags Shopping Items
 // @Produce json
-// @Security BearerAuth
+// @Param Authorization header string true "Bearer access token. Format: Bearer <access_token>"
 // @Param id path int true "Shopping Item ID"
 // @Success 200 {object} dto.MessageResponse
 // @Router /api/v1/shopping-items/{id} [delete]
