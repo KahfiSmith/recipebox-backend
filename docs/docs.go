@@ -84,11 +84,6 @@ const docTemplate = `{
         },
         "/api/v1/auth/me": {
             "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Return current authenticated user profile.",
                 "produces": [
                     "application/json"
@@ -97,6 +92,15 @@ const docTemplate = `{
                     "Auth"
                 ],
                 "summary": "Get current user profile",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer access token. Format: Bearer <access_token>",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -312,11 +316,6 @@ const docTemplate = `{
         },
         "/api/v1/dashboard": {
             "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Return recipes, meal plans, shopping items and summary in one payload.",
                 "produces": [
                     "application/json"
@@ -325,6 +324,15 @@ const docTemplate = `{
                     "Dashboard"
                 ],
                 "summary": "Get dashboard overview",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer access token. Format: Bearer <access_token>",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -337,11 +345,6 @@ const docTemplate = `{
         },
         "/api/v1/meal-plans": {
             "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Return meal plans list used by dashboard/meal-plan page.",
                 "produces": [
                     "application/json"
@@ -351,6 +354,13 @@ const docTemplate = `{
                 ],
                 "summary": "List meal plans",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer access token. Format: Bearer <access_token>",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "type": "integer",
                         "description": "Max items per page (default 20, max 100)",
@@ -374,11 +384,6 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Create a meal plan menu item.",
                 "consumes": [
                     "application/json"
@@ -391,6 +396,13 @@ const docTemplate = `{
                 ],
                 "summary": "Create meal plan",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer access token. Format: Bearer <access_token>",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "description": "Meal plan payload",
                         "name": "payload",
@@ -413,11 +425,6 @@ const docTemplate = `{
         },
         "/api/v1/meal-plans/{id}": {
             "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Update a meal plan menu item by ID.",
                 "consumes": [
                     "application/json"
@@ -430,6 +437,13 @@ const docTemplate = `{
                 ],
                 "summary": "Update meal plan",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer access token. Format: Bearer <access_token>",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "type": "integer",
                         "description": "Meal Plan ID",
@@ -457,11 +471,6 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Delete a meal plan menu item by ID.",
                 "produces": [
                     "application/json"
@@ -471,6 +480,13 @@ const docTemplate = `{
                 ],
                 "summary": "Delete meal plan",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer access token. Format: Bearer <access_token>",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "type": "integer",
                         "description": "Meal Plan ID",
@@ -491,11 +507,6 @@ const docTemplate = `{
         },
         "/api/v1/recipes": {
             "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Return recipes list used by dashboard/recipes page.",
                 "produces": [
                     "application/json"
@@ -505,6 +516,13 @@ const docTemplate = `{
                 ],
                 "summary": "List recipe cards",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer access token. Format: Bearer <access_token>",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "type": "integer",
                         "description": "Max items per page (default 20, max 100)",
@@ -528,11 +546,6 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Create a recipe menu item.",
                 "consumes": [
                     "application/json"
@@ -545,6 +558,13 @@ const docTemplate = `{
                 ],
                 "summary": "Create recipe",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer access token. Format: Bearer <access_token>",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "description": "Recipe payload",
                         "name": "payload",
@@ -567,11 +587,6 @@ const docTemplate = `{
         },
         "/api/v1/recipes/{id}": {
             "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Update a recipe menu item by ID.",
                 "consumes": [
                     "application/json"
@@ -584,6 +599,13 @@ const docTemplate = `{
                 ],
                 "summary": "Update recipe",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer access token. Format: Bearer <access_token>",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "type": "integer",
                         "description": "Recipe ID",
@@ -611,11 +633,6 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Delete a recipe menu item by ID.",
                 "produces": [
                     "application/json"
@@ -625,6 +642,13 @@ const docTemplate = `{
                 ],
                 "summary": "Delete recipe",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer access token. Format: Bearer <access_token>",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "type": "integer",
                         "description": "Recipe ID",
@@ -645,11 +669,6 @@ const docTemplate = `{
         },
         "/api/v1/shopping-items": {
             "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Return shopping items list used by dashboard/shopping page.",
                 "produces": [
                     "application/json"
@@ -659,6 +678,13 @@ const docTemplate = `{
                 ],
                 "summary": "List shopping items",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer access token. Format: Bearer <access_token>",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "type": "integer",
                         "description": "Max items per page (default 20, max 100)",
@@ -682,11 +708,6 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Create a shopping item menu entry.",
                 "consumes": [
                     "application/json"
@@ -699,6 +720,13 @@ const docTemplate = `{
                 ],
                 "summary": "Create shopping item",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer access token. Format: Bearer <access_token>",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "description": "Shopping item payload",
                         "name": "payload",
@@ -721,11 +749,6 @@ const docTemplate = `{
         },
         "/api/v1/shopping-items/{id}": {
             "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Update a shopping item menu entry by ID.",
                 "consumes": [
                     "application/json"
@@ -738,6 +761,13 @@ const docTemplate = `{
                 ],
                 "summary": "Update shopping item",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer access token. Format: Bearer <access_token>",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "type": "integer",
                         "description": "Shopping Item ID",
@@ -765,11 +795,6 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Delete a shopping item menu entry by ID.",
                 "produces": [
                     "application/json"
@@ -779,6 +804,13 @@ const docTemplate = `{
                 ],
                 "summary": "Delete shopping item",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer access token. Format: Bearer <access_token>",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "type": "integer",
                         "description": "Shopping Item ID",
@@ -1216,13 +1248,6 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
-        }
-    },
-    "securityDefinitions": {
-        "BearerAuth": {
-            "type": "apiKey",
-            "name": "Authorization",
-            "in": "header"
         }
     }
 }`

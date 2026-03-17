@@ -324,6 +324,12 @@ paths:
   /api/v1/auth/me:
     get:
       description: Return current authenticated user profile.
+      parameters:
+      - description: 'Bearer access token. Format: Bearer <access_token>'
+        in: header
+        name: Authorization
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -331,8 +337,6 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/recipebox-backend-go_internal_dto.UserEnvelope'
-      security:
-      - BearerAuth: []
       summary: Get current user profile
       tags:
       - Auth
@@ -470,6 +474,12 @@ paths:
   /api/v1/dashboard:
     get:
       description: Return recipes, meal plans, shopping items and summary in one payload.
+      parameters:
+      - description: 'Bearer access token. Format: Bearer <access_token>'
+        in: header
+        name: Authorization
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -477,8 +487,6 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/recipebox-backend-go_internal_dto.DashboardEnvelope'
-      security:
-      - BearerAuth: []
       summary: Get dashboard overview
       tags:
       - Dashboard
@@ -486,6 +494,11 @@ paths:
     get:
       description: Return meal plans list used by dashboard/meal-plan page.
       parameters:
+      - description: 'Bearer access token. Format: Bearer <access_token>'
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: Max items per page (default 20, max 100)
         in: query
         name: limit
@@ -501,8 +514,6 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/recipebox-backend-go_internal_dto.MealPlansEnvelope'
-      security:
-      - BearerAuth: []
       summary: List meal plans
       tags:
       - Meal Plans
@@ -511,6 +522,11 @@ paths:
       - application/json
       description: Create a meal plan menu item.
       parameters:
+      - description: 'Bearer access token. Format: Bearer <access_token>'
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: Meal plan payload
         in: body
         name: payload
@@ -524,8 +540,6 @@ paths:
           description: Created
           schema:
             $ref: '#/definitions/recipebox-backend-go_internal_dto.MealPlanEnvelope'
-      security:
-      - BearerAuth: []
       summary: Create meal plan
       tags:
       - Meal Plans
@@ -533,6 +547,11 @@ paths:
     delete:
       description: Delete a meal plan menu item by ID.
       parameters:
+      - description: 'Bearer access token. Format: Bearer <access_token>'
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: Meal Plan ID
         in: path
         name: id
@@ -545,8 +564,6 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/recipebox-backend-go_internal_dto.MessageResponse'
-      security:
-      - BearerAuth: []
       summary: Delete meal plan
       tags:
       - Meal Plans
@@ -555,6 +572,11 @@ paths:
       - application/json
       description: Update a meal plan menu item by ID.
       parameters:
+      - description: 'Bearer access token. Format: Bearer <access_token>'
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: Meal Plan ID
         in: path
         name: id
@@ -573,8 +595,6 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/recipebox-backend-go_internal_dto.MealPlanEnvelope'
-      security:
-      - BearerAuth: []
       summary: Update meal plan
       tags:
       - Meal Plans
@@ -582,6 +602,11 @@ paths:
     get:
       description: Return recipes list used by dashboard/recipes page.
       parameters:
+      - description: 'Bearer access token. Format: Bearer <access_token>'
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: Max items per page (default 20, max 100)
         in: query
         name: limit
@@ -597,8 +622,6 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/recipebox-backend-go_internal_dto.RecipesEnvelope'
-      security:
-      - BearerAuth: []
       summary: List recipe cards
       tags:
       - Recipes
@@ -607,6 +630,11 @@ paths:
       - application/json
       description: Create a recipe menu item.
       parameters:
+      - description: 'Bearer access token. Format: Bearer <access_token>'
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: Recipe payload
         in: body
         name: payload
@@ -620,8 +648,6 @@ paths:
           description: Created
           schema:
             $ref: '#/definitions/recipebox-backend-go_internal_dto.RecipeEnvelope'
-      security:
-      - BearerAuth: []
       summary: Create recipe
       tags:
       - Recipes
@@ -629,6 +655,11 @@ paths:
     delete:
       description: Delete a recipe menu item by ID.
       parameters:
+      - description: 'Bearer access token. Format: Bearer <access_token>'
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: Recipe ID
         in: path
         name: id
@@ -641,8 +672,6 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/recipebox-backend-go_internal_dto.MessageResponse'
-      security:
-      - BearerAuth: []
       summary: Delete recipe
       tags:
       - Recipes
@@ -651,6 +680,11 @@ paths:
       - application/json
       description: Update a recipe menu item by ID.
       parameters:
+      - description: 'Bearer access token. Format: Bearer <access_token>'
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: Recipe ID
         in: path
         name: id
@@ -669,8 +703,6 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/recipebox-backend-go_internal_dto.RecipeEnvelope'
-      security:
-      - BearerAuth: []
       summary: Update recipe
       tags:
       - Recipes
@@ -678,6 +710,11 @@ paths:
     get:
       description: Return shopping items list used by dashboard/shopping page.
       parameters:
+      - description: 'Bearer access token. Format: Bearer <access_token>'
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: Max items per page (default 20, max 100)
         in: query
         name: limit
@@ -693,8 +730,6 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/recipebox-backend-go_internal_dto.ShoppingItemsEnvelope'
-      security:
-      - BearerAuth: []
       summary: List shopping items
       tags:
       - Shopping Items
@@ -703,6 +738,11 @@ paths:
       - application/json
       description: Create a shopping item menu entry.
       parameters:
+      - description: 'Bearer access token. Format: Bearer <access_token>'
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: Shopping item payload
         in: body
         name: payload
@@ -716,8 +756,6 @@ paths:
           description: Created
           schema:
             $ref: '#/definitions/recipebox-backend-go_internal_dto.ShoppingItemEnvelope'
-      security:
-      - BearerAuth: []
       summary: Create shopping item
       tags:
       - Shopping Items
@@ -725,6 +763,11 @@ paths:
     delete:
       description: Delete a shopping item menu entry by ID.
       parameters:
+      - description: 'Bearer access token. Format: Bearer <access_token>'
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: Shopping Item ID
         in: path
         name: id
@@ -737,8 +780,6 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/recipebox-backend-go_internal_dto.MessageResponse'
-      security:
-      - BearerAuth: []
       summary: Delete shopping item
       tags:
       - Shopping Items
@@ -747,6 +788,11 @@ paths:
       - application/json
       description: Update a shopping item menu entry by ID.
       parameters:
+      - description: 'Bearer access token. Format: Bearer <access_token>'
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: Shopping Item ID
         in: path
         name: id
@@ -765,17 +811,10 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/recipebox-backend-go_internal_dto.ShoppingItemEnvelope'
-      security:
-      - BearerAuth: []
       summary: Update shopping item
       tags:
       - Shopping Items
 schemes:
 - http
 - https
-securityDefinitions:
-  BearerAuth:
-    in: header
-    name: Authorization
-    type: apiKey
 swagger: "2.0"
