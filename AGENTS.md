@@ -35,21 +35,26 @@ If conflicts exist, follow active router behavior and the running code path.
 - Backward compatibility by default.
 - Simplicity is a feature.
 
-## Core Design Principles (DRY, SOLID, KISS)
-- **DRY**: avoid repeated logic; extract only when it improves clarity.
-- **SOLID**: keep responsibilities clear and interfaces small.
-- **KISS**: prefer the simplest design that solves the current problem.
-
 ## Implementation Patterns
 - Add/update endpoint: sync route, controller, service, repository, dto, and docs.
 - Keep domain errors in service/repository; map to HTTP in controller.
 - For user-scoped resources, enforce `user_id` filtering in repository queries.
+- If implementation changes affect architecture, API behavior, database behavior, rules, or standard patterns, update the relevant file under `docs/` in the same change.
 
 ## Swagger Rules
 - Swagger header: `cmd/api/main.go`
 - Endpoint annotations: `internal/controller/*.go`
 - Regenerate when endpoint/annotation changes:
   - `bash scripts/swagger-generate.sh`
+
+## Documentation Sync Rules
+- Treat `docs/` as part of the deliverable, not a follow-up task.
+- Minimum mapping:
+  - architecture/runtime/layering changes -> `docs/architecture.md`
+  - endpoint/auth/contract changes -> `docs/api.md`
+  - schema/migration/storage changes -> `docs/database.md`
+  - repo rules/pattern changes -> `docs/rules.md` and/or `docs/patterns.md`
+- If a code change does not require a docs update, state that explicitly in handoff rather than assuming it is obvious.
 
 ## Testing Rules
 Minimum before handoff:
