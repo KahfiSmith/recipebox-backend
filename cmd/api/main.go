@@ -16,11 +16,9 @@ import (
 // @title RecipeBox Backend API
 // @version 1.0
 // @description API for RecipeBox backend services.
+// @host localhost:8080
 // @BasePath /
 // @schemes http https
-// @securityDefinitions.apikey BearerAuth
-// @in header
-// @name Authorization
 func main() {
 	cfg, err := config.Load()
 	if err != nil {

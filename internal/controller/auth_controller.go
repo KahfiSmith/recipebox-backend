@@ -42,9 +42,6 @@ func NewAuthController(service *service.AuthService, refreshCookieSecure bool, r
 // @Produce json
 // @Param payload body dto.RegisterRequest true "Register payload"
 // @Success 201 {object} dto.RegisterEnvelope
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 409 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
 // @Router /api/v1/auth/register [post]
 func (h *AuthController) Register(w http.ResponseWriter, r *http.Request) {
 	var input dto.RegisterRequest
@@ -77,10 +74,6 @@ func (h *AuthController) Register(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param payload body dto.LoginRequest true "Login payload"
 // @Success 200 {object} dto.AuthEnvelope
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 401 {object} dto.ErrorResponse
-// @Failure 403 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
 // @Router /api/v1/auth/login [post]
 func (h *AuthController) Login(w http.ResponseWriter, r *http.Request) {
 	var input dto.LoginRequest
@@ -92,6 +85,8 @@ func (h *AuthController) Login(w http.ResponseWriter, r *http.Request) {
 	resp, err := h.service.Login(r.Context(), input, r.UserAgent(), extractRequestIP(r, h.trustedProxies))
 	if err != nil {
 		switch {
+		case models.IsValidationError(err):
+			utils.Error(w, http.StatusBadRequest, err.Error())
 		case errors.Is(err, models.ErrInvalidCredentials):
 			utils.Error(w, http.StatusUnauthorized, err.Error())
 		case errors.Is(err, models.ErrEmailNotVerified):
@@ -116,9 +111,6 @@ func (h *AuthController) Login(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param payload body dto.RefreshRequest false "Refresh payload"
 // @Success 200 {object} dto.TokenEnvelope
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 401 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
 // @Router /api/v1/auth/refresh [post]
 func (h *AuthController) Refresh(w http.ResponseWriter, r *http.Request) {
 	refreshToken, err := refreshTokenFromRequest(r)
@@ -152,8 +144,6 @@ func (h *AuthController) Refresh(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param payload body dto.RefreshRequest false "Refresh payload"
 // @Success 200 {object} dto.MessageResponse
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
 // @Router /api/v1/auth/logout [post]
 func (h *AuthController) Logout(w http.ResponseWriter, r *http.Request) {
 	refreshToken, err := refreshTokenFromRequest(r)
@@ -178,11 +168,8 @@ func (h *AuthController) Logout(w http.ResponseWriter, r *http.Request) {
 // @Description Return current authenticated user profile.
 // @Tags Auth
 // @Produce json
-// @Security BearerAuth
+// @Param Authorization header string true "Bearer access token. Format: Bearer <access_token>"
 // @Success 200 {object} dto.UserEnvelope
-// @Failure 401 {object} dto.ErrorResponse
-// @Failure 404 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
 // @Router /api/v1/auth/me [get]
 func (h *AuthController) Me(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.UserIDFromContext(r.Context())
@@ -212,8 +199,6 @@ func (h *AuthController) Me(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param payload body dto.EmailRequest true "Email payload"
 // @Success 200 {object} dto.OneTimeTokenEnvelope
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
 // @Router /api/v1/auth/verify-email/request [post]
 func (h *AuthController) RequestEmailVerification(w http.ResponseWriter, r *http.Request) {
 	var input dto.EmailRequest
@@ -246,8 +231,6 @@ func (h *AuthController) RequestEmailVerification(w http.ResponseWriter, r *http
 // @Produce json
 // @Param payload body dto.VerifyEmailRequest true "Verify email payload"
 // @Success 200 {object} dto.MessageResponse
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
 // @Router /api/v1/auth/verify-email/confirm [post]
 func (h *AuthController) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 	var input dto.VerifyEmailRequest
@@ -277,8 +260,6 @@ func (h *AuthController) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param payload body dto.EmailRequest true "Email payload"
 // @Success 200 {object} dto.OneTimeTokenEnvelope
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
 // @Router /api/v1/auth/password/forgot [post]
 func (h *AuthController) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 	var input dto.EmailRequest
@@ -311,8 +292,6 @@ func (h *AuthController) ForgotPassword(w http.ResponseWriter, r *http.Request) 
 // @Produce json
 // @Param payload body dto.ResetPasswordRequest true "Reset password payload"
 // @Success 200 {object} dto.MessageResponse
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
 // @Router /api/v1/auth/password/reset [post]
 func (h *AuthController) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	var input dto.ResetPasswordRequest

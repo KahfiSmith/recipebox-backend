@@ -1,10 +1,10 @@
 # RecipeBox Backend API (Go)
 
-Backend REST API untuk RecipeBox.
+REST backend API for RecipeBox.
 
-## Dokumentasi
+## Documentation
 
-Semua dokumentasi teknis dipusatkan di folder `docs` agar tidak duplikatif:
+All technical documentation is centralized in the `docs` folder to avoid duplication:
 
 ```text
 docs/
@@ -16,38 +16,38 @@ docs/
 └── architecture.md
 ```
 
-Catatan:
-- Sumber kontrak API utama adalah `/openapi.yaml`.
-- `docs/swagger.yaml` dan `docs/swagger.json` disediakan sebagai alias kompatibilitas.
+Notes:
+- The primary API contract source is `/openapi.yaml`.
+- `docs/swagger.yaml` and `docs/swagger.json` are provided as compatibility aliases.
 
 ## Swagger (Swaggo)
 
-Install CLI:
+Install the CLI:
 
 - `go install github.com/swaggo/swag/cmd/swag@latest`
 
-Generate dokumen dari anotasi code:
+Generate docs from code annotations:
 
 - `./scripts/swagger-generate.sh`
 
-Hasil generate akan berada di folder `docs/` dan bisa di-import ke Postman.
+Generated files will be placed in `docs/` and can be imported into Postman.
 
-## Status Singkat
+## Quick Status
 
 - Stack: Go + Chi + GORM + PostgreSQL + Redis
 - Layering: controller, service, repository, models, dto
 
-## Menjalankan Lokal
+## Run Locally
 
-1. Copy `.env.example` ke `.env`
-2. Jalankan Redis:
+1. Copy `.env.example` to `.env`
+2. Start Redis:
    - `docker compose up -d redis`
-3. Jalankan migration SQL (opsional sesuai kebutuhan environment):
+3. Run SQL migrations (optional depending on the environment):
    - `./scripts/migrate-up.sh`
-4. Jalankan server:
+4. Start the server:
    - `go run ./cmd/api`
 
-## Struktur Inti
+## Core Structure
 
 - `cmd/api`: entrypoint
 - `internal/controller`: HTTP handlers

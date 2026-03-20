@@ -9,7 +9,7 @@ if [[ -f "$ENV_FILE" ]]; then
 fi
 
 if [[ -z "${DATABASE_URL:-}" ]]; then
-  echo "DATABASE_URL belum diset. Isi .env dulu." >&2
+  echo "DATABASE_URL is not set. Populate .env first." >&2
   exit 1
 fi
 
@@ -23,5 +23,5 @@ if command -v psql >/dev/null 2>&1; then
   exit 0
 fi
 
-echo "Tool psql tidak ditemukan. Tidak bisa cek status tabel." >&2
+echo "psql was not found. Cannot check table status." >&2
 exit 1

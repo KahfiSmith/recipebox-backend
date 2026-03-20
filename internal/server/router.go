@@ -15,10 +15,11 @@ import (
 	"recipebox-backend-go/internal/utils"
 )
 
-func NewRouter(authController *controller.AuthController, dashboardController *controller.DashboardController, authService *service.AuthService, authRateLimitStore middleware.AuthRateLimitStore, authRateLimitPerMinute int, trustedProxies []*net.IPNet) http.Handler {
+func NewRouter(authController *controller.AuthController, dashboardController *controller.DashboardController, authService *service.AuthService, authRateLimitStore middleware.AuthRateLimitStore, authRateLimitPerMinute int, trustedProxies []*net.IPNet, frontendBaseURL string) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(chimw.RequestID)
+	r.Use(middleware.CORS(frontendBaseURL))
 	r.Use(middleware.RealIP(trustedProxies))
 	r.Use(chimw.Recoverer)
 	r.Use(chimw.Logger)

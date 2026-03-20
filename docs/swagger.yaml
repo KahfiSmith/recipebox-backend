@@ -1,4 +1,5 @@
 basePath: /
+host: localhost:8080
 definitions:
   recipebox-backend-go_internal_dto.AuthEnvelope:
     properties:
@@ -87,6 +88,7 @@ definitions:
   recipebox-backend-go_internal_dto.EmailRequest:
     properties:
       email:
+        example: alkahfii2018@gmail.com
         type: string
     type: object
   recipebox-backend-go_internal_dto.ErrorResponse:
@@ -97,8 +99,10 @@ definitions:
   recipebox-backend-go_internal_dto.LoginRequest:
     properties:
       email:
+        example: alkahfii2018@gmail.com
         type: string
       password:
+        example: secret123
         type: string
     type: object
   recipebox-backend-go_internal_dto.MealPlanEnvelope:
@@ -147,6 +151,7 @@ definitions:
   recipebox-backend-go_internal_dto.RefreshRequest:
     properties:
       refreshToken:
+        example: refresh-token-sample
         type: string
     type: object
   recipebox-backend-go_internal_dto.RegisterEnvelope:
@@ -157,10 +162,13 @@ definitions:
   recipebox-backend-go_internal_dto.RegisterRequest:
     properties:
       email:
+        example: alkahfii2018@gmail.com
         type: string
       name:
+        example: Kahfi Smith
         type: string
       password:
+        example: secret123
         type: string
     type: object
   recipebox-backend-go_internal_dto.RegisterResponse:
@@ -171,8 +179,10 @@ definitions:
   recipebox-backend-go_internal_dto.ResetPasswordRequest:
     properties:
       newPassword:
+        example: newSecret123
         type: string
       token:
+        example: reset-token-sample
         type: string
     type: object
   recipebox-backend-go_internal_dto.ShoppingItemEnvelope:
@@ -244,6 +254,7 @@ definitions:
   recipebox-backend-go_internal_dto.VerifyEmailRequest:
     properties:
       token:
+        example: verify-token-sample
         type: string
     type: object
   recipebox-backend-go_internal_models.User:
@@ -286,22 +297,6 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/recipebox-backend-go_internal_dto.AuthEnvelope'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
       summary: Login user
       tags:
       - Auth
@@ -323,20 +318,18 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/recipebox-backend-go_internal_dto.MessageResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
       summary: Logout
       tags:
       - Auth
   /api/v1/auth/me:
     get:
       description: Return current authenticated user profile.
+      parameters:
+      - description: 'Bearer access token. Format: Bearer <access_token>'
+        in: header
+        name: Authorization
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -344,20 +337,6 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/recipebox-backend-go_internal_dto.UserEnvelope'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-      security:
-      - BearerAuth: []
       summary: Get current user profile
       tags:
       - Auth
@@ -380,14 +359,6 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/recipebox-backend-go_internal_dto.OneTimeTokenEnvelope'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
       summary: Request password reset token
       tags:
       - Auth
@@ -410,14 +381,6 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/recipebox-backend-go_internal_dto.MessageResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
       summary: Reset password
       tags:
       - Auth
@@ -439,18 +402,6 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/recipebox-backend-go_internal_dto.TokenEnvelope'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
       summary: Refresh access token
       tags:
       - Auth
@@ -473,18 +424,6 @@ paths:
           description: Created
           schema:
             $ref: '#/definitions/recipebox-backend-go_internal_dto.RegisterEnvelope'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-        "409":
-          description: Conflict
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
       summary: Register user
       tags:
       - Auth
@@ -507,14 +446,6 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/recipebox-backend-go_internal_dto.MessageResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
       summary: Confirm email verification
       tags:
       - Auth
@@ -537,20 +468,18 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/recipebox-backend-go_internal_dto.OneTimeTokenEnvelope'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
       summary: Request email verification token
       tags:
       - Auth
   /api/v1/dashboard:
     get:
       description: Return recipes, meal plans, shopping items and summary in one payload.
+      parameters:
+      - description: 'Bearer access token. Format: Bearer <access_token>'
+        in: header
+        name: Authorization
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -558,22 +487,26 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/recipebox-backend-go_internal_dto.DashboardEnvelope'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-      security:
-      - BearerAuth: []
       summary: Get dashboard overview
       tags:
       - Dashboard
   /api/v1/meal-plans:
     get:
       description: Return meal plans list used by dashboard/meal-plan page.
+      parameters:
+      - description: 'Bearer access token. Format: Bearer <access_token>'
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Max items per page (default 20, max 100)
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination offset (default 0)
+        in: query
+        name: offset
+        type: integer
       produces:
       - application/json
       responses:
@@ -581,16 +514,6 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/recipebox-backend-go_internal_dto.MealPlansEnvelope'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-      security:
-      - BearerAuth: []
       summary: List meal plans
       tags:
       - Meal Plans
@@ -599,6 +522,11 @@ paths:
       - application/json
       description: Create a meal plan menu item.
       parameters:
+      - description: 'Bearer access token. Format: Bearer <access_token>'
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: Meal plan payload
         in: body
         name: payload
@@ -612,20 +540,6 @@ paths:
           description: Created
           schema:
             $ref: '#/definitions/recipebox-backend-go_internal_dto.MealPlanEnvelope'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-      security:
-      - BearerAuth: []
       summary: Create meal plan
       tags:
       - Meal Plans
@@ -633,6 +547,11 @@ paths:
     delete:
       description: Delete a meal plan menu item by ID.
       parameters:
+      - description: 'Bearer access token. Format: Bearer <access_token>'
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: Meal Plan ID
         in: path
         name: id
@@ -645,24 +564,6 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/recipebox-backend-go_internal_dto.MessageResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-      security:
-      - BearerAuth: []
       summary: Delete meal plan
       tags:
       - Meal Plans
@@ -671,6 +572,11 @@ paths:
       - application/json
       description: Update a meal plan menu item by ID.
       parameters:
+      - description: 'Bearer access token. Format: Bearer <access_token>'
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: Meal Plan ID
         in: path
         name: id
@@ -689,30 +595,26 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/recipebox-backend-go_internal_dto.MealPlanEnvelope'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-      security:
-      - BearerAuth: []
       summary: Update meal plan
       tags:
       - Meal Plans
   /api/v1/recipes:
     get:
       description: Return recipes list used by dashboard/recipes page.
+      parameters:
+      - description: 'Bearer access token. Format: Bearer <access_token>'
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Max items per page (default 20, max 100)
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination offset (default 0)
+        in: query
+        name: offset
+        type: integer
       produces:
       - application/json
       responses:
@@ -720,16 +622,6 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/recipebox-backend-go_internal_dto.RecipesEnvelope'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-      security:
-      - BearerAuth: []
       summary: List recipe cards
       tags:
       - Recipes
@@ -738,6 +630,11 @@ paths:
       - application/json
       description: Create a recipe menu item.
       parameters:
+      - description: 'Bearer access token. Format: Bearer <access_token>'
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: Recipe payload
         in: body
         name: payload
@@ -751,20 +648,6 @@ paths:
           description: Created
           schema:
             $ref: '#/definitions/recipebox-backend-go_internal_dto.RecipeEnvelope'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-      security:
-      - BearerAuth: []
       summary: Create recipe
       tags:
       - Recipes
@@ -772,6 +655,11 @@ paths:
     delete:
       description: Delete a recipe menu item by ID.
       parameters:
+      - description: 'Bearer access token. Format: Bearer <access_token>'
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: Recipe ID
         in: path
         name: id
@@ -784,24 +672,6 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/recipebox-backend-go_internal_dto.MessageResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-      security:
-      - BearerAuth: []
       summary: Delete recipe
       tags:
       - Recipes
@@ -810,6 +680,11 @@ paths:
       - application/json
       description: Update a recipe menu item by ID.
       parameters:
+      - description: 'Bearer access token. Format: Bearer <access_token>'
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: Recipe ID
         in: path
         name: id
@@ -828,30 +703,26 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/recipebox-backend-go_internal_dto.RecipeEnvelope'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-      security:
-      - BearerAuth: []
       summary: Update recipe
       tags:
       - Recipes
   /api/v1/shopping-items:
     get:
       description: Return shopping items list used by dashboard/shopping page.
+      parameters:
+      - description: 'Bearer access token. Format: Bearer <access_token>'
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Max items per page (default 20, max 100)
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination offset (default 0)
+        in: query
+        name: offset
+        type: integer
       produces:
       - application/json
       responses:
@@ -859,16 +730,6 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/recipebox-backend-go_internal_dto.ShoppingItemsEnvelope'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-      security:
-      - BearerAuth: []
       summary: List shopping items
       tags:
       - Shopping Items
@@ -877,6 +738,11 @@ paths:
       - application/json
       description: Create a shopping item menu entry.
       parameters:
+      - description: 'Bearer access token. Format: Bearer <access_token>'
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: Shopping item payload
         in: body
         name: payload
@@ -890,20 +756,6 @@ paths:
           description: Created
           schema:
             $ref: '#/definitions/recipebox-backend-go_internal_dto.ShoppingItemEnvelope'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-      security:
-      - BearerAuth: []
       summary: Create shopping item
       tags:
       - Shopping Items
@@ -911,6 +763,11 @@ paths:
     delete:
       description: Delete a shopping item menu entry by ID.
       parameters:
+      - description: 'Bearer access token. Format: Bearer <access_token>'
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: Shopping Item ID
         in: path
         name: id
@@ -923,24 +780,6 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/recipebox-backend-go_internal_dto.MessageResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-      security:
-      - BearerAuth: []
       summary: Delete shopping item
       tags:
       - Shopping Items
@@ -949,6 +788,11 @@ paths:
       - application/json
       description: Update a shopping item menu entry by ID.
       parameters:
+      - description: 'Bearer access token. Format: Bearer <access_token>'
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: Shopping Item ID
         in: path
         name: id
@@ -967,33 +811,10 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/recipebox-backend-go_internal_dto.ShoppingItemEnvelope'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/recipebox-backend-go_internal_dto.ErrorResponse'
-      security:
-      - BearerAuth: []
       summary: Update shopping item
       tags:
       - Shopping Items
 schemes:
 - http
 - https
-securityDefinitions:
-  BearerAuth:
-    in: header
-    name: Authorization
-    type: apiKey
 swagger: "2.0"

@@ -19,6 +19,11 @@ type DashboardController struct {
 	service *service.DashboardService
 }
 
+const (
+	defaultPageLimit = 20
+	maxPageLimit     = 100
+)
+
 func NewDashboardController(service *service.DashboardService) *DashboardController {
 	return &DashboardController{service: service}
 }
@@ -28,10 +33,8 @@ func NewDashboardController(service *service.DashboardService) *DashboardControl
 // @Description Return recipes, meal plans, shopping items and summary in one payload.
 // @Tags Dashboard
 // @Produce json
-// @Security BearerAuth
+// @Param Authorization header string true "Bearer access token. Format: Bearer <access_token>"
 // @Success 200 {object} dto.DashboardEnvelope
-// @Failure 401 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
 // @Router /api/v1/dashboard [get]
 func (h *DashboardController) GetDashboard(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.userIDFromRequest(r)
@@ -54,10 +57,10 @@ func (h *DashboardController) GetDashboard(w http.ResponseWriter, r *http.Reques
 // @Description Return recipes list used by dashboard/recipes page.
 // @Tags Recipes
 // @Produce json
-// @Security BearerAuth
+// @Param Authorization header string true "Bearer access token. Format: Bearer <access_token>"
+// @Param limit query int false "Max items per page (default 20, max 100)"
+// @Param offset query int false "Pagination offset (default 0)"
 // @Success 200 {object} dto.RecipesEnvelope
-// @Failure 401 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
 // @Router /api/v1/recipes [get]
 func (h *DashboardController) GetRecipes(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.userIDFromRequest(r)
@@ -66,7 +69,12 @@ func (h *DashboardController) GetRecipes(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	resp, err := h.service.ListRecipes(r.Context(), userID)
+	limit, offset, ok := paginationParams(w, r)
+	if !ok {
+		return
+	}
+
+	resp, err := h.service.ListRecipesPage(r.Context(), userID, limit, offset)
 	if err != nil {
 		utils.Error(w, http.StatusInternalServerError, "failed to load recipes")
 		return
@@ -81,12 +89,9 @@ func (h *DashboardController) GetRecipes(w http.ResponseWriter, r *http.Request)
 // @Tags Recipes
 // @Accept json
 // @Produce json
-// @Security BearerAuth
+// @Param Authorization header string true "Bearer access token. Format: Bearer <access_token>"
 // @Param payload body dto.UpsertRecipeRequest true "Recipe payload"
 // @Success 201 {object} dto.RecipeEnvelope
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 401 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
 // @Router /api/v1/recipes [post]
 func (h *DashboardController) CreateRecipe(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.userIDFromRequest(r)
@@ -116,14 +121,10 @@ func (h *DashboardController) CreateRecipe(w http.ResponseWriter, r *http.Reques
 // @Tags Recipes
 // @Accept json
 // @Produce json
-// @Security BearerAuth
+// @Param Authorization header string true "Bearer access token. Format: Bearer <access_token>"
 // @Param id path int true "Recipe ID"
 // @Param payload body dto.UpsertRecipeRequest true "Recipe payload"
 // @Success 200 {object} dto.RecipeEnvelope
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 401 {object} dto.ErrorResponse
-// @Failure 404 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
 // @Router /api/v1/recipes/{id} [put]
 func (h *DashboardController) UpdateRecipe(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.userIDFromRequest(r)
@@ -157,13 +158,9 @@ func (h *DashboardController) UpdateRecipe(w http.ResponseWriter, r *http.Reques
 // @Description Delete a recipe menu item by ID.
 // @Tags Recipes
 // @Produce json
-// @Security BearerAuth
+// @Param Authorization header string true "Bearer access token. Format: Bearer <access_token>"
 // @Param id path int true "Recipe ID"
 // @Success 200 {object} dto.MessageResponse
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 401 {object} dto.ErrorResponse
-// @Failure 404 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
 // @Router /api/v1/recipes/{id} [delete]
 func (h *DashboardController) DeleteRecipe(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.userIDFromRequest(r)
@@ -190,10 +187,10 @@ func (h *DashboardController) DeleteRecipe(w http.ResponseWriter, r *http.Reques
 // @Description Return meal plans list used by dashboard/meal-plan page.
 // @Tags Meal Plans
 // @Produce json
-// @Security BearerAuth
+// @Param Authorization header string true "Bearer access token. Format: Bearer <access_token>"
+// @Param limit query int false "Max items per page (default 20, max 100)"
+// @Param offset query int false "Pagination offset (default 0)"
 // @Success 200 {object} dto.MealPlansEnvelope
-// @Failure 401 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
 // @Router /api/v1/meal-plans [get]
 func (h *DashboardController) GetMealPlans(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.userIDFromRequest(r)
@@ -202,7 +199,12 @@ func (h *DashboardController) GetMealPlans(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	resp, err := h.service.ListMealPlans(r.Context(), userID)
+	limit, offset, ok := paginationParams(w, r)
+	if !ok {
+		return
+	}
+
+	resp, err := h.service.ListMealPlansPage(r.Context(), userID, limit, offset)
 	if err != nil {
 		utils.Error(w, http.StatusInternalServerError, "failed to load meal plans")
 		return
@@ -217,12 +219,9 @@ func (h *DashboardController) GetMealPlans(w http.ResponseWriter, r *http.Reques
 // @Tags Meal Plans
 // @Accept json
 // @Produce json
-// @Security BearerAuth
+// @Param Authorization header string true "Bearer access token. Format: Bearer <access_token>"
 // @Param payload body dto.UpsertMealPlanRequest true "Meal plan payload"
 // @Success 201 {object} dto.MealPlanEnvelope
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 401 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
 // @Router /api/v1/meal-plans [post]
 func (h *DashboardController) CreateMealPlan(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.userIDFromRequest(r)
@@ -252,14 +251,10 @@ func (h *DashboardController) CreateMealPlan(w http.ResponseWriter, r *http.Requ
 // @Tags Meal Plans
 // @Accept json
 // @Produce json
-// @Security BearerAuth
+// @Param Authorization header string true "Bearer access token. Format: Bearer <access_token>"
 // @Param id path int true "Meal Plan ID"
 // @Param payload body dto.UpsertMealPlanRequest true "Meal plan payload"
 // @Success 200 {object} dto.MealPlanEnvelope
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 401 {object} dto.ErrorResponse
-// @Failure 404 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
 // @Router /api/v1/meal-plans/{id} [put]
 func (h *DashboardController) UpdateMealPlan(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.userIDFromRequest(r)
@@ -293,13 +288,9 @@ func (h *DashboardController) UpdateMealPlan(w http.ResponseWriter, r *http.Requ
 // @Description Delete a meal plan menu item by ID.
 // @Tags Meal Plans
 // @Produce json
-// @Security BearerAuth
+// @Param Authorization header string true "Bearer access token. Format: Bearer <access_token>"
 // @Param id path int true "Meal Plan ID"
 // @Success 200 {object} dto.MessageResponse
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 401 {object} dto.ErrorResponse
-// @Failure 404 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
 // @Router /api/v1/meal-plans/{id} [delete]
 func (h *DashboardController) DeleteMealPlan(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.userIDFromRequest(r)
@@ -326,10 +317,10 @@ func (h *DashboardController) DeleteMealPlan(w http.ResponseWriter, r *http.Requ
 // @Description Return shopping items list used by dashboard/shopping page.
 // @Tags Shopping Items
 // @Produce json
-// @Security BearerAuth
+// @Param Authorization header string true "Bearer access token. Format: Bearer <access_token>"
+// @Param limit query int false "Max items per page (default 20, max 100)"
+// @Param offset query int false "Pagination offset (default 0)"
 // @Success 200 {object} dto.ShoppingItemsEnvelope
-// @Failure 401 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
 // @Router /api/v1/shopping-items [get]
 func (h *DashboardController) GetShoppingItems(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.userIDFromRequest(r)
@@ -338,7 +329,12 @@ func (h *DashboardController) GetShoppingItems(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	resp, err := h.service.ListShoppingItems(r.Context(), userID)
+	limit, offset, ok := paginationParams(w, r)
+	if !ok {
+		return
+	}
+
+	resp, err := h.service.ListShoppingItemsPage(r.Context(), userID, limit, offset)
 	if err != nil {
 		utils.Error(w, http.StatusInternalServerError, "failed to load shopping items")
 		return
@@ -353,12 +349,9 @@ func (h *DashboardController) GetShoppingItems(w http.ResponseWriter, r *http.Re
 // @Tags Shopping Items
 // @Accept json
 // @Produce json
-// @Security BearerAuth
+// @Param Authorization header string true "Bearer access token. Format: Bearer <access_token>"
 // @Param payload body dto.UpsertShoppingItemRequest true "Shopping item payload"
 // @Success 201 {object} dto.ShoppingItemEnvelope
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 401 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
 // @Router /api/v1/shopping-items [post]
 func (h *DashboardController) CreateShoppingItem(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.userIDFromRequest(r)
@@ -388,14 +381,10 @@ func (h *DashboardController) CreateShoppingItem(w http.ResponseWriter, r *http.
 // @Tags Shopping Items
 // @Accept json
 // @Produce json
-// @Security BearerAuth
+// @Param Authorization header string true "Bearer access token. Format: Bearer <access_token>"
 // @Param id path int true "Shopping Item ID"
 // @Param payload body dto.UpsertShoppingItemRequest true "Shopping item payload"
 // @Success 200 {object} dto.ShoppingItemEnvelope
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 401 {object} dto.ErrorResponse
-// @Failure 404 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
 // @Router /api/v1/shopping-items/{id} [put]
 func (h *DashboardController) UpdateShoppingItem(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.userIDFromRequest(r)
@@ -429,13 +418,9 @@ func (h *DashboardController) UpdateShoppingItem(w http.ResponseWriter, r *http.
 // @Description Delete a shopping item menu entry by ID.
 // @Tags Shopping Items
 // @Produce json
-// @Security BearerAuth
+// @Param Authorization header string true "Bearer access token. Format: Bearer <access_token>"
 // @Param id path int true "Shopping Item ID"
 // @Success 200 {object} dto.MessageResponse
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 401 {object} dto.ErrorResponse
-// @Failure 404 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
 // @Router /api/v1/shopping-items/{id} [delete]
 func (h *DashboardController) DeleteShoppingItem(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.userIDFromRequest(r)
@@ -481,4 +466,32 @@ func pathID(w http.ResponseWriter, r *http.Request, param string) (int64, bool) 
 		return 0, false
 	}
 	return id, true
+}
+
+func paginationParams(w http.ResponseWriter, r *http.Request) (int, int, bool) {
+	limit := defaultPageLimit
+	offset := 0
+
+	if raw := r.URL.Query().Get("limit"); raw != "" {
+		v, err := strconv.Atoi(raw)
+		if err != nil || v <= 0 {
+			utils.Error(w, http.StatusBadRequest, "invalid limit")
+			return 0, 0, false
+		}
+		if v > maxPageLimit {
+			v = maxPageLimit
+		}
+		limit = v
+	}
+
+	if raw := r.URL.Query().Get("offset"); raw != "" {
+		v, err := strconv.Atoi(raw)
+		if err != nil || v < 0 {
+			utils.Error(w, http.StatusBadRequest, "invalid offset")
+			return 0, 0, false
+		}
+		offset = v
+	}
+
+	return limit, offset, true
 }

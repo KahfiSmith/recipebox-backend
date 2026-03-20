@@ -10,12 +10,12 @@ if [[ -f "$ENV_FILE" ]]; then
 fi
 
 if [[ -z "${DATABASE_URL:-}" ]]; then
-  echo "DATABASE_URL belum diset. Isi .env dulu." >&2
+  echo "DATABASE_URL is not set. Populate .env first." >&2
   exit 1
 fi
 
 if ! [[ "$STEPS" =~ ^[0-9]+$ ]] || [[ "$STEPS" -lt 1 ]]; then
-  echo "Argumen steps harus integer >= 1" >&2
+  echo "The steps argument must be an integer >= 1" >&2
   exit 1
 fi
 
@@ -28,7 +28,7 @@ if command -v psql >/dev/null 2>&1; then
   shopt -s nullglob
   files=("$MIGRATIONS_DIR"/*.down.sql)
   if [[ ${#files[@]} -eq 0 ]]; then
-    echo "Tidak ada file migration .down.sql" >&2
+    echo "No .down.sql migration files found" >&2
     exit 1
   fi
 
@@ -51,5 +51,5 @@ if command -v psql >/dev/null 2>&1; then
   exit 0
 fi
 
-echo "Tool migrate/psql tidak ditemukan. Install salah satu dulu." >&2
+echo "Neither migrate nor psql was found. Install one of them first." >&2
 exit 1

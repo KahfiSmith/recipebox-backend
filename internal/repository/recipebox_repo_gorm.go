@@ -19,6 +19,10 @@ func NewRecipeBoxGormRepository(db *gorm.DB) *RecipeBoxGormRepository {
 }
 
 func (r *RecipeBoxGormRepository) ListRecipes(ctx context.Context, userID int64) ([]models.Recipe, error) {
+	return r.ListRecipesPage(ctx, userID, 0, 0)
+}
+
+func (r *RecipeBoxGormRepository) ListRecipesPage(ctx context.Context, userID int64, limit, offset int) ([]models.Recipe, error) {
 	type recipeRow struct {
 		ID        int64     `gorm:"column:id"`
 		Name      string    `gorm:"column:name"`
@@ -52,12 +56,18 @@ func (r *RecipeBoxGormRepository) ListRecipes(ctx context.Context, userID int64)
 	}
 
 	var rows []recipeRow
-	if err := r.db.WithContext(ctx).
+	query := r.db.WithContext(ctx).
 		Table("recipes").
 		Select(selectExpr).
 		Where("user_id = ?", userID).
-		Order(orderColumn + " DESC").
-		Scan(&rows).Error; err != nil {
+		Order(orderColumn + " DESC")
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+	if offset > 0 {
+		query = query.Offset(offset)
+	}
+	if err := query.Scan(&rows).Error; err != nil {
 		return nil, fmt.Errorf("list recipes: %w", err)
 	}
 
@@ -124,14 +134,24 @@ func (r *RecipeBoxGormRepository) DeleteRecipe(ctx context.Context, userID, reci
 }
 
 func (r *RecipeBoxGormRepository) ListMealPlans(ctx context.Context, userID int64) ([]models.MealPlan, error) {
+	return r.ListMealPlansPage(ctx, userID, 0, 0)
+}
+
+func (r *RecipeBoxGormRepository) ListMealPlansPage(ctx context.Context, userID int64, limit, offset int) ([]models.MealPlan, error) {
 	if r.hasColumn(&models.MealPlan{}, "day") {
 		var rows []models.MealPlan
-		if err := r.db.WithContext(ctx).
+		query := r.db.WithContext(ctx).
 			Table("meal_plans").
 			Select("id, COALESCE(day, '') AS day, COALESCE(meal_name, '') AS meal_name, COALESCE(servings, 0) AS servings, ingredients").
 			Where("user_id = ?", userID).
-			Order("id DESC").
-			Scan(&rows).Error; err != nil {
+			Order("id DESC")
+		if limit > 0 {
+			query = query.Limit(limit)
+		}
+		if offset > 0 {
+			query = query.Offset(offset)
+		}
+		if err := query.Scan(&rows).Error; err != nil {
 			return nil, fmt.Errorf("list meal plans: %w", err)
 		}
 
@@ -162,7 +182,7 @@ func (r *RecipeBoxGormRepository) ListMealPlans(ctx context.Context, userID int6
 	}
 
 	var rows []legacyMealPlanRow
-	if err := r.db.WithContext(ctx).
+	query := r.db.WithContext(ctx).
 		Table("meal_plans AS mp").
 		Select([]string{
 			"mp.id",
@@ -172,8 +192,14 @@ func (r *RecipeBoxGormRepository) ListMealPlans(ctx context.Context, userID int6
 		}).
 		Joins("LEFT JOIN recipes AS r ON r.id = mp.recipe_id").
 		Where("mp.user_id = ?", userID).
-		Order("mp.scheduled_at DESC, mp.id DESC").
-		Scan(&rows).Error; err != nil {
+		Order("mp.scheduled_at DESC, mp.id DESC")
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+	if offset > 0 {
+		query = query.Offset(offset)
+	}
+	if err := query.Scan(&rows).Error; err != nil {
 		return nil, fmt.Errorf("list meal plans: %w", err)
 	}
 
@@ -245,6 +271,10 @@ func (r *RecipeBoxGormRepository) DeleteMealPlan(ctx context.Context, userID, me
 }
 
 func (r *RecipeBoxGormRepository) ListShoppingItems(ctx context.Context, userID int64) ([]models.ShoppingItem, error) {
+	return r.ListShoppingItemsPage(ctx, userID, 0, 0)
+}
+
+func (r *RecipeBoxGormRepository) ListShoppingItemsPage(ctx context.Context, userID int64, limit, offset int) ([]models.ShoppingItem, error) {
 	type shoppingRow struct {
 		ID       int64  `gorm:"column:id"`
 		MenuName string `gorm:"column:menu_name"`
@@ -288,9 +318,14 @@ func (r *RecipeBoxGormRepository) ListShoppingItems(ctx context.Context, userID 
 	if joins != "" {
 		query = query.Joins(joins)
 	}
-	if err := query.
-		Order(orderExpr).
-		Scan(&rows).Error; err != nil {
+	query = query.Order(orderExpr)
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+	if offset > 0 {
+		query = query.Offset(offset)
+	}
+	if err := query.Scan(&rows).Error; err != nil {
 		return nil, fmt.Errorf("list shopping items: %w", err)
 	}
 

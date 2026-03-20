@@ -12,10 +12,27 @@ import (
 
 type DashboardService struct {
 	repo repository.RecipeBoxRepository
+	cacheStore DashboardCacheStore
 }
 
+const (
+	defaultListLimit = 20
+	maxListLimit     = 100
+)
+
 func NewDashboardService(repo repository.RecipeBoxRepository) *DashboardService {
-	return &DashboardService{repo: repo}
+	return &DashboardService{
+		repo:       repo,
+		cacheStore: NewNoopDashboardCacheStore(),
+	}
+}
+
+func (s *DashboardService) ConfigureDashboardCacheStore(cacheStore DashboardCacheStore) {
+	if cacheStore == nil {
+		s.cacheStore = NewNoopDashboardCacheStore()
+		return
+	}
+	s.cacheStore = cacheStore
 }
 
 func (s *DashboardService) ListRecipes(ctx context.Context, userID int64) ([]dto.DashboardRecipe, error) {
@@ -33,6 +50,23 @@ func (s *DashboardService) ListRecipes(ctx context.Context, userID int64) ([]dto
 		result = append(result, toDashboardRecipe(recipe))
 	}
 
+	return result, nil
+}
+
+func (s *DashboardService) ListRecipesPage(ctx context.Context, userID int64, limit, offset int) ([]dto.DashboardRecipe, error) {
+	if s.repo == nil {
+		return nil, errors.New("recipebox repository is not configured")
+	}
+	limit, offset = normalizePagination(limit, offset)
+	recipes, err := s.repo.ListRecipesPage(ctx, userID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]dto.DashboardRecipe, 0, len(recipes))
+	for _, recipe := range recipes {
+		result = append(result, toDashboardRecipe(recipe))
+	}
 	return result, nil
 }
 
@@ -58,6 +92,7 @@ func (s *DashboardService) CreateRecipe(ctx context.Context, userID int64, input
 	if err != nil {
 		return dto.DashboardRecipe{}, err
 	}
+	s.invalidateDashboardCache(ctx, userID)
 
 	return toDashboardRecipe(created), nil
 }
@@ -83,6 +118,7 @@ func (s *DashboardService) UpdateRecipe(ctx context.Context, userID, recipeID in
 	if err != nil {
 		return dto.DashboardRecipe{}, err
 	}
+	s.invalidateDashboardCache(ctx, userID)
 
 	return toDashboardRecipe(updated), nil
 }
@@ -91,7 +127,11 @@ func (s *DashboardService) DeleteRecipe(ctx context.Context, userID, recipeID in
 	if s.repo == nil {
 		return errors.New("recipebox repository is not configured")
 	}
-	return s.repo.DeleteRecipe(ctx, userID, recipeID)
+	if err := s.repo.DeleteRecipe(ctx, userID, recipeID); err != nil {
+		return err
+	}
+	s.invalidateDashboardCache(ctx, userID)
+	return nil
 }
 
 func (s *DashboardService) ListMealPlans(ctx context.Context, userID int64) ([]dto.DashboardMealPlan, error) {
@@ -109,6 +149,23 @@ func (s *DashboardService) ListMealPlans(ctx context.Context, userID int64) ([]d
 		result = append(result, toDashboardMealPlan(mealPlan))
 	}
 
+	return result, nil
+}
+
+func (s *DashboardService) ListMealPlansPage(ctx context.Context, userID int64, limit, offset int) ([]dto.DashboardMealPlan, error) {
+	if s.repo == nil {
+		return nil, errors.New("recipebox repository is not configured")
+	}
+	limit, offset = normalizePagination(limit, offset)
+	mealPlans, err := s.repo.ListMealPlansPage(ctx, userID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]dto.DashboardMealPlan, 0, len(mealPlans))
+	for _, mealPlan := range mealPlans {
+		result = append(result, toDashboardMealPlan(mealPlan))
+	}
 	return result, nil
 }
 
@@ -138,6 +195,7 @@ func (s *DashboardService) CreateMealPlan(ctx context.Context, userID int64, inp
 	if err != nil {
 		return dto.DashboardMealPlan{}, err
 	}
+	s.invalidateDashboardCache(ctx, userID)
 
 	return toDashboardMealPlan(created), nil
 }
@@ -168,6 +226,7 @@ func (s *DashboardService) UpdateMealPlan(ctx context.Context, userID, mealPlanI
 	if err != nil {
 		return dto.DashboardMealPlan{}, err
 	}
+	s.invalidateDashboardCache(ctx, userID)
 
 	return toDashboardMealPlan(updated), nil
 }
@@ -176,7 +235,11 @@ func (s *DashboardService) DeleteMealPlan(ctx context.Context, userID, mealPlanI
 	if s.repo == nil {
 		return errors.New("recipebox repository is not configured")
 	}
-	return s.repo.DeleteMealPlan(ctx, userID, mealPlanID)
+	if err := s.repo.DeleteMealPlan(ctx, userID, mealPlanID); err != nil {
+		return err
+	}
+	s.invalidateDashboardCache(ctx, userID)
+	return nil
 }
 
 func (s *DashboardService) ListShoppingItems(ctx context.Context, userID int64) ([]dto.DashboardShoppingItem, error) {
@@ -194,6 +257,23 @@ func (s *DashboardService) ListShoppingItems(ctx context.Context, userID int64) 
 		result = append(result, toDashboardShoppingItem(item))
 	}
 
+	return result, nil
+}
+
+func (s *DashboardService) ListShoppingItemsPage(ctx context.Context, userID int64, limit, offset int) ([]dto.DashboardShoppingItem, error) {
+	if s.repo == nil {
+		return nil, errors.New("recipebox repository is not configured")
+	}
+	limit, offset = normalizePagination(limit, offset)
+	items, err := s.repo.ListShoppingItemsPage(ctx, userID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]dto.DashboardShoppingItem, 0, len(items))
+	for _, item := range items {
+		result = append(result, toDashboardShoppingItem(item))
+	}
 	return result, nil
 }
 
@@ -216,6 +296,7 @@ func (s *DashboardService) CreateShoppingItem(ctx context.Context, userID int64,
 	if err != nil {
 		return dto.DashboardShoppingItem{}, err
 	}
+	s.invalidateDashboardCache(ctx, userID)
 
 	return toDashboardShoppingItem(created), nil
 }
@@ -239,6 +320,7 @@ func (s *DashboardService) UpdateShoppingItem(ctx context.Context, userID, itemI
 	if err != nil {
 		return dto.DashboardShoppingItem{}, err
 	}
+	s.invalidateDashboardCache(ctx, userID)
 
 	return toDashboardShoppingItem(updated), nil
 }
@@ -247,10 +329,19 @@ func (s *DashboardService) DeleteShoppingItem(ctx context.Context, userID, itemI
 	if s.repo == nil {
 		return errors.New("recipebox repository is not configured")
 	}
-	return s.repo.DeleteShoppingItem(ctx, userID, itemID)
+	if err := s.repo.DeleteShoppingItem(ctx, userID, itemID); err != nil {
+		return err
+	}
+	s.invalidateDashboardCache(ctx, userID)
+	return nil
 }
 
 func (s *DashboardService) GetDashboard(ctx context.Context, userID int64) (dto.DashboardResponse, error) {
+	cached, found, err := s.cacheStore.GetDashboard(ctx, userID)
+	if err == nil && found {
+		return cached, nil
+	}
+
 	recipes, err := s.ListRecipes(ctx, userID)
 	if err != nil {
 		return dto.DashboardResponse{}, err
@@ -273,7 +364,7 @@ func (s *DashboardService) GetDashboard(ctx context.Context, userID int64) (dto.
 		}
 	}
 
-	return dto.DashboardResponse{
+	resp := dto.DashboardResponse{
 		Summary: dto.DashboardSummary{
 			RecipeCount:              len(recipes),
 			UpcomingMealPlanCount:    len(mealPlans),
@@ -282,7 +373,9 @@ func (s *DashboardService) GetDashboard(ctx context.Context, userID int64) (dto.
 		Recipes:       recipes,
 		MealPlans:     mealPlans,
 		ShoppingItems: shoppingItems,
-	}, nil
+	}
+	_ = s.cacheStore.SetDashboard(ctx, userID, resp)
+	return resp, nil
 }
 
 func toDashboardRecipe(recipe models.Recipe) dto.DashboardRecipe {
@@ -328,4 +421,21 @@ func compactStrings(in []string) []string {
 		}
 	}
 	return out
+}
+
+func normalizePagination(limit, offset int) (int, int) {
+	if limit <= 0 {
+		limit = defaultListLimit
+	}
+	if limit > maxListLimit {
+		limit = maxListLimit
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	return limit, offset
+}
+
+func (s *DashboardService) invalidateDashboardCache(ctx context.Context, userID int64) {
+	_ = s.cacheStore.InvalidateDashboard(ctx, userID)
 }

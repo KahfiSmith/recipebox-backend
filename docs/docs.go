@@ -45,30 +45,6 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.AuthEnvelope"
                         }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
                     }
                 }
             }
@@ -102,29 +78,12 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.MessageResponse"
                         }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
                     }
                 }
             }
         },
         "/api/v1/auth/me": {
             "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Return current authenticated user profile.",
                 "produces": [
                     "application/json"
@@ -133,29 +92,20 @@ const docTemplate = `{
                     "Auth"
                 ],
                 "summary": "Get current user profile",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer access token. Format: Bearer <access_token>",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.UserEnvelope"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
                         }
                     }
                 }
@@ -191,18 +141,6 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.OneTimeTokenEnvelope"
                         }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
                     }
                 }
             }
@@ -237,18 +175,6 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.MessageResponse"
                         }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
                     }
                 }
             }
@@ -281,24 +207,6 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.TokenEnvelope"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
                         }
                     }
                 }
@@ -334,24 +242,6 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.RegisterEnvelope"
                         }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "409": {
-                        "description": "Conflict",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
                     }
                 }
             }
@@ -385,18 +275,6 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.MessageResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
                         }
                     }
                 }
@@ -432,29 +310,12 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.OneTimeTokenEnvelope"
                         }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
                     }
                 }
             }
         },
         "/api/v1/dashboard": {
             "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Return recipes, meal plans, shopping items and summary in one payload.",
                 "produces": [
                     "application/json"
@@ -463,23 +324,20 @@ const docTemplate = `{
                     "Dashboard"
                 ],
                 "summary": "Get dashboard overview",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer access token. Format: Bearer <access_token>",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.DashboardEnvelope"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
                         }
                     }
                 }
@@ -487,11 +345,6 @@ const docTemplate = `{
         },
         "/api/v1/meal-plans": {
             "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Return meal plans list used by dashboard/meal-plan page.",
                 "produces": [
                     "application/json"
@@ -500,33 +353,37 @@ const docTemplate = `{
                     "Meal Plans"
                 ],
                 "summary": "List meal plans",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer access token. Format: Bearer <access_token>",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Max items per page (default 20, max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Pagination offset (default 0)",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.MealPlansEnvelope"
                         }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
                     }
                 }
             },
             "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Create a meal plan menu item.",
                 "consumes": [
                     "application/json"
@@ -540,6 +397,13 @@ const docTemplate = `{
                 "summary": "Create meal plan",
                 "parameters": [
                     {
+                        "type": "string",
+                        "description": "Bearer access token. Format: Bearer <access_token>",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
                         "description": "Meal plan payload",
                         "name": "payload",
                         "in": "body",
@@ -555,35 +419,12 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.MealPlanEnvelope"
                         }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
                     }
                 }
             }
         },
         "/api/v1/meal-plans/{id}": {
             "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Update a meal plan menu item by ID.",
                 "consumes": [
                     "application/json"
@@ -597,6 +438,13 @@ const docTemplate = `{
                 "summary": "Update meal plan",
                 "parameters": [
                     {
+                        "type": "string",
+                        "description": "Bearer access token. Format: Bearer <access_token>",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
                         "type": "integer",
                         "description": "Meal Plan ID",
                         "name": "id",
@@ -619,39 +467,10 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.MealPlanEnvelope"
                         }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
                     }
                 }
             },
             "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Delete a meal plan menu item by ID.",
                 "produces": [
                     "application/json"
@@ -661,6 +480,13 @@ const docTemplate = `{
                 ],
                 "summary": "Delete meal plan",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer access token. Format: Bearer <access_token>",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "type": "integer",
                         "description": "Meal Plan ID",
@@ -675,41 +501,12 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.MessageResponse"
                         }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
                     }
                 }
             }
         },
         "/api/v1/recipes": {
             "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Return recipes list used by dashboard/recipes page.",
                 "produces": [
                     "application/json"
@@ -718,33 +515,37 @@ const docTemplate = `{
                     "Recipes"
                 ],
                 "summary": "List recipe cards",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer access token. Format: Bearer <access_token>",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Max items per page (default 20, max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Pagination offset (default 0)",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.RecipesEnvelope"
                         }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
                     }
                 }
             },
             "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Create a recipe menu item.",
                 "consumes": [
                     "application/json"
@@ -758,6 +559,13 @@ const docTemplate = `{
                 "summary": "Create recipe",
                 "parameters": [
                     {
+                        "type": "string",
+                        "description": "Bearer access token. Format: Bearer <access_token>",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
                         "description": "Recipe payload",
                         "name": "payload",
                         "in": "body",
@@ -773,35 +581,12 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.RecipeEnvelope"
                         }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
                     }
                 }
             }
         },
         "/api/v1/recipes/{id}": {
             "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Update a recipe menu item by ID.",
                 "consumes": [
                     "application/json"
@@ -815,6 +600,13 @@ const docTemplate = `{
                 "summary": "Update recipe",
                 "parameters": [
                     {
+                        "type": "string",
+                        "description": "Bearer access token. Format: Bearer <access_token>",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
                         "type": "integer",
                         "description": "Recipe ID",
                         "name": "id",
@@ -837,39 +629,10 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.RecipeEnvelope"
                         }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
                     }
                 }
             },
             "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Delete a recipe menu item by ID.",
                 "produces": [
                     "application/json"
@@ -879,6 +642,13 @@ const docTemplate = `{
                 ],
                 "summary": "Delete recipe",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer access token. Format: Bearer <access_token>",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "type": "integer",
                         "description": "Recipe ID",
@@ -893,41 +663,12 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.MessageResponse"
                         }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
                     }
                 }
             }
         },
         "/api/v1/shopping-items": {
             "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Return shopping items list used by dashboard/shopping page.",
                 "produces": [
                     "application/json"
@@ -936,33 +677,37 @@ const docTemplate = `{
                     "Shopping Items"
                 ],
                 "summary": "List shopping items",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer access token. Format: Bearer <access_token>",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Max items per page (default 20, max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Pagination offset (default 0)",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.ShoppingItemsEnvelope"
                         }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
                     }
                 }
             },
             "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Create a shopping item menu entry.",
                 "consumes": [
                     "application/json"
@@ -975,6 +720,13 @@ const docTemplate = `{
                 ],
                 "summary": "Create shopping item",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer access token. Format: Bearer <access_token>",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "description": "Shopping item payload",
                         "name": "payload",
@@ -991,35 +743,12 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.ShoppingItemEnvelope"
                         }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
                     }
                 }
             }
         },
         "/api/v1/shopping-items/{id}": {
             "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Update a shopping item menu entry by ID.",
                 "consumes": [
                     "application/json"
@@ -1032,6 +761,13 @@ const docTemplate = `{
                 ],
                 "summary": "Update shopping item",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer access token. Format: Bearer <access_token>",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "type": "integer",
                         "description": "Shopping Item ID",
@@ -1055,39 +791,10 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.ShoppingItemEnvelope"
                         }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
                     }
                 }
             },
             "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Delete a shopping item menu entry by ID.",
                 "produces": [
                     "application/json"
@@ -1097,6 +804,13 @@ const docTemplate = `{
                 ],
                 "summary": "Delete shopping item",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer access token. Format: Bearer <access_token>",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "type": "integer",
                         "description": "Shopping Item ID",
@@ -1110,30 +824,6 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/recipebox-backend-go_internal_dto.MessageResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/recipebox-backend-go_internal_dto.ErrorResponse"
                         }
                     }
                 }
@@ -1275,6 +965,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "email": {
+                    "example": "alkahfii2018@gmail.com",
                     "type": "string"
                 }
             }
@@ -1291,9 +982,11 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "email": {
+                    "example": "alkahfii2018@gmail.com",
                     "type": "string"
                 },
                 "password": {
+                    "example": "secret123",
                     "type": "string"
                 }
             }
@@ -1370,6 +1063,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "refreshToken": {
+                    "example": "refresh-token-sample",
                     "type": "string"
                 }
             }
@@ -1386,12 +1080,15 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "email": {
+                    "example": "alkahfii2018@gmail.com",
                     "type": "string"
                 },
                 "name": {
+                    "example": "Kahfi Smith",
                     "type": "string"
                 },
                 "password": {
+                    "example": "secret123",
                     "type": "string"
                 }
             }
@@ -1408,9 +1105,11 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "newPassword": {
+                    "example": "newSecret123",
                     "type": "string"
                 },
                 "token": {
+                    "example": "reset-token-sample",
                     "type": "string"
                 }
             }
@@ -1522,6 +1221,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "token": {
+                    "example": "verify-token-sample",
                     "type": "string"
                 }
             }
@@ -1549,20 +1249,13 @@ const docTemplate = `{
                 }
             }
         }
-    },
-    "securityDefinitions": {
-        "BearerAuth": {
-            "type": "apiKey",
-            "name": "Authorization",
-            "in": "header"
-        }
     }
 }`
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "",
+	Host:             "localhost:8080",
 	BasePath:         "/",
 	Schemes:          []string{"http", "https"},
 	Title:            "RecipeBox Backend API",
