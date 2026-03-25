@@ -25,20 +25,20 @@ func (s stubEmailSender) Send(ctx context.Context, to, subject, body string) err
 }
 
 type mockAuthRepo struct {
-	createUserFn                     func(ctx context.Context, name, email, passwordHash string) (entity.User, error)
-	findUserByEmailFn                func(ctx context.Context, email string) (entity.User, error)
-	findUserByIDFn                   func(ctx context.Context, id int64) (entity.User, error)
-	updateUserPasswordFn             func(ctx context.Context, userID int64, passwordHash string) error
-	saveRefreshTokenFn               func(ctx context.Context, userID int64, tokenHash string, expiresAt time.Time, userAgent, ip string) error
-	findRefreshOwnerFn               func(ctx context.Context, tokenHash string, now time.Time) (int64, error)
-	findRefreshTokenByHashFn         func(ctx context.Context, tokenHash string) (entity.RefreshToken, error)
-	rotateRefreshTokenFn             func(ctx context.Context, oldTokenHash, newTokenHash string, newExpiresAt, now time.Time, userAgent, ip string) error
-	revokeRefreshTokenFn             func(ctx context.Context, tokenHash string) error
-	revokeAllUserRefreshTokensFn     func(ctx context.Context, userID int64) error
-	saveEmailVerificationTokenFn     func(ctx context.Context, userID int64, tokenHash string, expiresAt time.Time) error
-	consumeEmailVerificationTokenFn  func(ctx context.Context, tokenHash string, now time.Time) error
-	savePasswordResetTokenFn         func(ctx context.Context, userID int64, tokenHash string, expiresAt time.Time) error
-	consumePasswordResetAndUpdateFn  func(ctx context.Context, tokenHash, newPasswordHash string, now time.Time) error
+	createUserFn                    func(ctx context.Context, name, email, passwordHash string) (entity.User, error)
+	findUserByEmailFn               func(ctx context.Context, email string) (entity.User, error)
+	findUserByIDFn                  func(ctx context.Context, id int64) (entity.User, error)
+	updateUserPasswordFn            func(ctx context.Context, userID int64, passwordHash string) error
+	saveRefreshTokenFn              func(ctx context.Context, userID int64, tokenHash string, expiresAt time.Time, userAgent, ip string) error
+	findRefreshOwnerFn              func(ctx context.Context, tokenHash string, now time.Time) (int64, error)
+	findRefreshTokenByHashFn        func(ctx context.Context, tokenHash string) (entity.RefreshToken, error)
+	rotateRefreshTokenFn            func(ctx context.Context, oldTokenHash, newTokenHash string, newExpiresAt, now time.Time, userAgent, ip string) error
+	revokeRefreshTokenFn            func(ctx context.Context, tokenHash string) error
+	revokeAllUserRefreshTokensFn    func(ctx context.Context, userID int64) error
+	saveEmailVerificationTokenFn    func(ctx context.Context, userID int64, tokenHash string, expiresAt time.Time) error
+	consumeEmailVerificationTokenFn func(ctx context.Context, tokenHash string, now time.Time) error
+	savePasswordResetTokenFn        func(ctx context.Context, userID int64, tokenHash string, expiresAt time.Time) error
+	consumePasswordResetAndUpdateFn func(ctx context.Context, tokenHash, newPasswordHash string, now time.Time) error
 }
 
 func (m mockAuthRepo) CreateUser(ctx context.Context, name, email, passwordHash string) (entity.User, error) {
@@ -142,6 +142,8 @@ func (m mockAuthRepo) ConsumePasswordResetTokenAndUpdatePassword(ctx context.Con
 func TestRegisterSuccess(t *testing.T) {
 	t.Parallel()
 
+	var savedHash string
+	var sentTo string
 	repo := mockAuthRepo{
 		createUserFn: func(_ context.Context, name, email, passwordHash string) (entity.User, error) {
 			if name != "Kahfi Smith" {
@@ -155,9 +157,31 @@ func TestRegisterSuccess(t *testing.T) {
 			}
 			return entity.User{ID: 11, Name: name, Email: email, PasswordHash: passwordHash}, nil
 		},
+		saveEmailVerificationTokenFn: func(_ context.Context, userID int64, tokenHash string, expiresAt time.Time) error {
+			if userID != 11 {
+				t.Fatalf("unexpected userID for verification token: %d", userID)
+			}
+			if tokenHash == "" {
+				t.Fatalf("expected verification token hash")
+			}
+			if expiresAt.IsZero() {
+				t.Fatalf("expected verification token expiry")
+			}
+			savedHash = tokenHash
+			return nil
+		},
 	}
 
 	svc := NewAuthService(repo, strings.Repeat("a", 32), 15*time.Minute, 24*time.Hour, 10)
+	svc.ConfigureEmailDelivery(stubEmailSender{
+		sendFn: func(_ context.Context, to, subject, body string) error {
+			sentTo = to
+			if subject == "" || body == "" {
+				t.Fatalf("expected verification email subject and body")
+			}
+			return nil
+		},
+	}, "", true)
 
 	resp, err := svc.Register(context.Background(), dto.RegisterRequest{
 		Name:     "Kahfi Smith",
@@ -176,6 +200,12 @@ func TestRegisterSuccess(t *testing.T) {
 	}
 	if resp.User.PasswordHash != "" {
 		t.Fatalf("user password hash must be hidden in response")
+	}
+	if savedHash == "" {
+		t.Fatalf("expected verification token to be saved")
+	}
+	if sentTo != "user@example.com" {
+		t.Fatalf("expected verification email to be sent to normalized email, got %q", sentTo)
 	}
 }
 
@@ -215,6 +245,39 @@ func TestRegisterNameRequired(t *testing.T) {
 	})
 	if err == nil || err.Error() != "name is required" {
 		t.Fatalf("expected name required validation error, got %v", err)
+	}
+}
+
+func TestRegisterSucceedsWhenVerificationSetupFails(t *testing.T) {
+	t.Parallel()
+
+	repo := mockAuthRepo{
+		createUserFn: func(_ context.Context, name, email, passwordHash string) (entity.User, error) {
+			return entity.User{ID: 12, Name: name, Email: email, PasswordHash: passwordHash}, nil
+		},
+		saveEmailVerificationTokenFn: func(_ context.Context, userID int64, tokenHash string, expiresAt time.Time) error {
+			if userID != 12 {
+				t.Fatalf("unexpected userID %d", userID)
+			}
+			if tokenHash == "" || expiresAt.IsZero() {
+				t.Fatalf("expected verification token to be generated")
+			}
+			return errors.New("verification store unavailable")
+		},
+	}
+
+	svc := NewAuthService(repo, strings.Repeat("z", 32), 15*time.Minute, 24*time.Hour, 10)
+
+	resp, err := svc.Register(context.Background(), dto.RegisterRequest{
+		Name:     "Kahfi Smith",
+		Email:    "user@example.com",
+		Password: "secret123",
+	})
+	if err != nil {
+		t.Fatalf("Register() error = %v", err)
+	}
+	if resp.User.ID != 12 {
+		t.Fatalf("expected created user to be returned")
 	}
 }
 
@@ -568,6 +631,36 @@ func TestRequestEmailVerificationSucceedsWhenEmailSendFails(t *testing.T) {
 	}
 	if resp.ExpiresAt.IsZero() {
 		t.Fatalf("expected expiry timestamp")
+	}
+}
+
+func TestSendEmailVerificationIncludesTokenWhenFrontendLinkIsConfigured(t *testing.T) {
+	t.Parallel()
+
+	var sentBody string
+	svc := NewAuthService(mockAuthRepo{}, strings.Repeat("g", 32), 15*time.Minute, 24*time.Hour, 10)
+	svc.ConfigureEmailDelivery(stubEmailSender{
+		sendFn: func(_ context.Context, to, subject, body string) error {
+			if to != "user@example.com" {
+				t.Fatalf("unexpected recipient %q", to)
+			}
+			if subject == "" {
+				t.Fatalf("expected subject")
+			}
+			sentBody = body
+			return nil
+		},
+	}, "http://localhost:5173", false)
+
+	expiresAt := time.Date(2026, 3, 26, 10, 0, 0, 0, time.UTC)
+	if err := svc.sendEmailVerification(context.Background(), "user@example.com", "verify-code-123", expiresAt); err != nil {
+		t.Fatalf("sendEmailVerification() error = %v", err)
+	}
+	if !strings.Contains(sentBody, "verify-code-123") {
+		t.Fatalf("expected verification code in email body")
+	}
+	if !strings.Contains(sentBody, "http://localhost:5173/verify-email?token=verify-code-123") {
+		t.Fatalf("expected verification link in email body")
 	}
 }
 

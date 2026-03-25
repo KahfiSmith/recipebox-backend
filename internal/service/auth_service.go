@@ -103,6 +103,10 @@ func (s *AuthService) Register(ctx context.Context, input dto.RegisterRequest) (
 		return dto.RegisterResponse{}, err
 	}
 
+	if _, err := s.issueEmailVerificationToken(ctx, user.ID, user.Email); err != nil {
+		log.Printf("auth: failed to prepare email verification for newly registered user %s: %v", user.Email, err)
+	}
+
 	user.PasswordHash = ""
 	return dto.RegisterResponse{User: user}, nil
 }
@@ -272,26 +276,7 @@ func (s *AuthService) RequestEmailVerification(ctx context.Context, input dto.Em
 		return dto.OneTimeTokenResponse{}, nil
 	}
 
-	rawToken, err := generateTokenString(48)
-	if err != nil {
-		return dto.OneTimeTokenResponse{}, fmt.Errorf("generate verify token: %w", err)
-	}
-
-	expiresAt := s.now().Add(s.verifyEmailTTL)
-	tokenHash := hashToken(rawToken)
-	if err := s.repo.SaveEmailVerificationToken(ctx, user.ID, tokenHash, expiresAt); err != nil {
-		return dto.OneTimeTokenResponse{}, err
-	}
-	if err := s.stateRepo.StoreOTP(ctx, "verify_email", tokenHash, time.Until(expiresAt)); err != nil {
-		return dto.OneTimeTokenResponse{}, err
-	}
-
-	s.trySendEmailVerification(ctx, user.Email, rawToken, expiresAt)
-	if !s.exposeTokens {
-		rawToken = ""
-	}
-
-	return dto.OneTimeTokenResponse{Token: rawToken, ExpiresAt: expiresAt}, nil
+	return s.issueEmailVerificationToken(ctx, user.ID, user.Email)
 }
 
 func (s *AuthService) VerifyEmail(ctx context.Context, token string) error {
@@ -567,6 +552,29 @@ func (s *AuthService) detectRefreshTokenReuse(ctx context.Context, tokenHash str
 	}
 }
 
+func (s *AuthService) issueEmailVerificationToken(ctx context.Context, userID int64, email string) (dto.OneTimeTokenResponse, error) {
+	rawToken, err := generateTokenString(48)
+	if err != nil {
+		return dto.OneTimeTokenResponse{}, fmt.Errorf("generate verify token: %w", err)
+	}
+
+	expiresAt := s.now().Add(s.verifyEmailTTL)
+	tokenHash := hashToken(rawToken)
+	if err := s.repo.SaveEmailVerificationToken(ctx, userID, tokenHash, expiresAt); err != nil {
+		return dto.OneTimeTokenResponse{}, err
+	}
+	if err := s.stateRepo.StoreOTP(ctx, "verify_email", tokenHash, time.Until(expiresAt)); err != nil {
+		return dto.OneTimeTokenResponse{}, err
+	}
+
+	s.trySendEmailVerification(ctx, email, rawToken, expiresAt)
+	if !s.exposeTokens {
+		rawToken = ""
+	}
+
+	return dto.OneTimeTokenResponse{Token: rawToken, ExpiresAt: expiresAt}, nil
+}
+
 func (s *AuthService) sendEmailVerification(ctx context.Context, to, token string, expiresAt time.Time) error {
 	subject := "Verify your RecipeBox account"
 	body := fmt.Sprintf(
@@ -576,7 +584,8 @@ func (s *AuthService) sendEmailVerification(ctx context.Context, to, token strin
 	)
 	if link := s.buildActionLink("/verify-email", token); link != "" {
 		body = fmt.Sprintf(
-			"Verify your RecipeBox account by opening this link:\n%s\n\nThis link expires at %s.",
+			"Use this verification code: %s\n\nOr verify your RecipeBox account by opening this link:\n%s\n\nThis code and link expire at %s.",
+			token,
 			link,
 			expiresAt.UTC().Format(time.RFC3339),
 		)
