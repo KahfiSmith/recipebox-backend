@@ -114,7 +114,7 @@ func (s *AuthService) Register(ctx context.Context, input dto.RegisterRequest) (
 func (s *AuthService) Login(ctx context.Context, input dto.LoginRequest, userAgent, ip string) (dto.AuthResponse, error) {
 	email, err := normalizeEmail(input.Email)
 	if err != nil {
-		return dto.AuthResponse{}, models.ErrInvalidCredentials
+		return dto.AuthResponse{}, err
 	}
 
 	user, err := s.repo.FindUserByEmail(ctx, email)
