@@ -29,7 +29,7 @@ type VerifyEmailRequest struct {
 }
 
 type ResetPasswordRequest struct {
-	Token       string `json:"token" example:"reset-token-sample"`
+	Token       string `json:"token" example:"12345678"`
 	NewPassword string `json:"newPassword" example:"newSecret123"`
 }
 

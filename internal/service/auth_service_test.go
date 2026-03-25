@@ -697,6 +697,69 @@ func TestRequestPasswordResetSucceedsWhenEmailSendFails(t *testing.T) {
 	}
 }
 
+func TestRequestPasswordResetReturnsNumericCodeWhenExposureEnabled(t *testing.T) {
+	t.Parallel()
+
+	var savedHash string
+	repo := mockAuthRepo{
+		findUserByEmailFn: func(_ context.Context, email string) (entity.User, error) {
+			return entity.User{ID: 9, Email: email}, nil
+		},
+		savePasswordResetTokenFn: func(_ context.Context, _ int64, tokenHash string, _ time.Time) error {
+			savedHash = tokenHash
+			return nil
+		},
+	}
+
+	svc := NewAuthService(repo, strings.Repeat("g", 32), 15*time.Minute, 24*time.Hour, 10)
+
+	resp, err := svc.RequestPasswordReset(context.Background(), dto.EmailRequest{Email: "user@example.com"})
+	if err != nil {
+		t.Fatalf("RequestPasswordReset() error = %v", err)
+	}
+	if len(resp.Token) != 8 {
+		t.Fatalf("expected 8 digit reset code, got %q", resp.Token)
+	}
+	for _, ch := range resp.Token {
+		if ch < '0' || ch > '9' {
+			t.Fatalf("expected numeric-only reset code, got %q", resp.Token)
+		}
+	}
+	if savedHash != hashToken(resp.Token) {
+		t.Fatalf("stored hash mismatch")
+	}
+}
+
+func TestSendPasswordResetIncludesTokenWhenFrontendLinkIsConfigured(t *testing.T) {
+	t.Parallel()
+
+	var sentBody string
+	svc := NewAuthService(mockAuthRepo{}, strings.Repeat("g", 32), 15*time.Minute, 24*time.Hour, 10)
+	svc.ConfigureEmailDelivery(stubEmailSender{
+		sendFn: func(_ context.Context, to, subject, body string) error {
+			if to != "user@example.com" {
+				t.Fatalf("unexpected recipient %q", to)
+			}
+			if subject == "" {
+				t.Fatalf("expected subject")
+			}
+			sentBody = body
+			return nil
+		},
+	}, "http://localhost:5173", false)
+
+	expiresAt := time.Date(2026, 3, 26, 10, 0, 0, 0, time.UTC)
+	if err := svc.sendPasswordReset(context.Background(), "user@example.com", "reset-code-123", expiresAt); err != nil {
+		t.Fatalf("sendPasswordReset() error = %v", err)
+	}
+	if !strings.Contains(sentBody, "reset-code-123") {
+		t.Fatalf("expected reset code in email body")
+	}
+	if !strings.Contains(sentBody, "http://localhost:5173/auth/reset-password?token=reset-code-123") {
+		t.Fatalf("expected reset link in email body")
+	}
+}
+
 func TestResetPasswordInvalidToken(t *testing.T) {
 	t.Parallel()
 

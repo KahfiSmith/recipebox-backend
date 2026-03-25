@@ -311,7 +311,7 @@ func (s *AuthService) RequestPasswordReset(ctx context.Context, input dto.EmailR
 		return dto.OneTimeTokenResponse{}, err
 	}
 
-	rawToken, err := generateTokenString(48)
+	rawToken, err := generateNumericCode(8)
 	if err != nil {
 		return dto.OneTimeTokenResponse{}, fmt.Errorf("generate password reset token: %w", err)
 	}
@@ -512,6 +512,24 @@ func generateTokenString(numBytes int) (string, error) {
 	return base64.RawURLEncoding.EncodeToString(buf), nil
 }
 
+func generateNumericCode(length int) (string, error) {
+	if length <= 0 {
+		return "", fmt.Errorf("numeric code length must be positive")
+	}
+
+	buf := make([]byte, length)
+	if _, err := rand.Read(buf); err != nil {
+		return "", err
+	}
+
+	code := make([]byte, length)
+	for i, b := range buf {
+		code[i] = '0' + (b % 10)
+	}
+
+	return string(code), nil
+}
+
 func hashToken(token string) string {
 	sum := sha256.Sum256([]byte(token))
 	return hex.EncodeToString(sum[:])
@@ -600,9 +618,10 @@ func (s *AuthService) sendPasswordReset(ctx context.Context, to, token string, e
 		token,
 		expiresAt.UTC().Format(time.RFC3339),
 	)
-	if link := s.buildActionLink("/reset-password", token); link != "" {
+	if link := s.buildActionLink("/auth/reset-password", token); link != "" {
 		body = fmt.Sprintf(
-			"Reset your RecipeBox password by opening this link:\n%s\n\nThis link expires at %s.",
+			"Use this reset code: %s\n\nOr reset your RecipeBox password by opening this link:\n%s\n\nThis code and link expire at %s.",
+			token,
 			link,
 			expiresAt.UTC().Format(time.RFC3339),
 		)
