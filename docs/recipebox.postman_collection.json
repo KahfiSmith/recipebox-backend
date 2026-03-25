@@ -119,7 +119,7 @@
                 "register"
               ]
             },
-            "description": "Register a new user account."
+            "description": "Register a new user account. Successful registration now also triggers the email verification flow for the submitted email address."
           }
         },
         {
@@ -401,7 +401,7 @@
                 "forgot"
               ]
             },
-            "description": "Request password reset flow."
+            "description": "Request password reset flow. The reset email now includes an 8-digit numeric reset code in the message body, and also includes the frontend reset link when configured."
           }
         },
         {
