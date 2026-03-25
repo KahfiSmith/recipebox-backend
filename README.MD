@@ -11,7 +11,7 @@ docs/
 ├── swagger.yaml
 ├── swagger.json
 ├── openapi.yaml (canonical: /openapi.yaml)
-├── postman_collection.json
+├── recipebox.postman_collection.json
 ├── api.md
 └── architecture.md
 ```

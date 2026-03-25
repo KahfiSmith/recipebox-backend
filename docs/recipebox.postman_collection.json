@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "8be4e0cc-76f4-4d7d-9f18-0b7717b59e00",
     "name": "RecipeBox Backend API",
-    "description": "Curated Postman collection with UX-friendly grouping for RecipeBox backend endpoints.",
+    "description": "Curated Postman collection with UX-friendly grouping for RecipeBox backend endpoints. Start with System > Health check, then Auth > Login user before hitting protected recipe, meal plan, and shopping item endpoints.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -65,6 +65,27 @@
   ],
   "item": [
     {
+      "name": "System",
+      "item": [
+        {
+          "name": "Health check",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/healthz",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "healthz"
+              ]
+            },
+            "description": "Use this first. If this request fails with connection refused, the backend is not running on {{baseUrl}} yet."
+          }
+        }
+      ]
+    },
+    {
       "name": "Auth",
       "item": [
         {
@@ -111,8 +132,12 @@
                 "exec": [
                   "try {",
                   "  const data = pm.response.json().data;",
-                  "  if (data && data.tokens && data.tokens.accessToken) {",
-                  "    pm.collectionVariables.set('accessToken', data.tokens.accessToken);",
+                  "  const token = data && data.tokens && data.tokens.accessToken;",
+                  "  if (token) {",
+                  "    pm.collectionVariables.set('accessToken', token);",
+                  "    if (pm.environment) {",
+                  "      pm.environment.set('accessToken', token);",
+                  "    }",
                   "  }",
                   "} catch (e) {}"
                 ]
@@ -528,7 +553,8 @@
                 "v1",
                 "recipes"
               ]
-            }
+            },
+            "description": "Protected endpoint. Run System > Health check first and Auth > Login user to populate {{accessToken}} before sending this request."
           }
         },
         {
