@@ -173,6 +173,8 @@ definitions:
     type: object
   recipebox-backend-go_internal_dto.RegisterResponse:
     properties:
+      emailVerification:
+        $ref: '#/definitions/recipebox-backend-go_internal_dto.OneTimeTokenResponse'
       user:
         $ref: '#/definitions/recipebox-backend-go_internal_models.User'
     type: object

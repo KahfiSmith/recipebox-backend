@@ -1096,6 +1096,9 @@ const docTemplate = `{
         "recipebox-backend-go_internal_dto.RegisterResponse": {
             "type": "object",
             "properties": {
+                "emailVerification": {
+                    "$ref": "#/definitions/recipebox-backend-go_internal_dto.OneTimeTokenResponse"
+                },
                 "user": {
                     "$ref": "#/definitions/recipebox-backend-go_internal_models.User"
                 }
