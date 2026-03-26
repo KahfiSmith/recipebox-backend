@@ -1224,7 +1224,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "token": {
-                    "example": "verify-token-sample",
+                    "example": "12345678",
                     "type": "string"
                 }
             }

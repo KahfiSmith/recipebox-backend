@@ -256,7 +256,7 @@ definitions:
   recipebox-backend-go_internal_dto.VerifyEmailRequest:
     properties:
       token:
-        example: verify-token-sample
+        example: "12345678"
         type: string
     type: object
   recipebox-backend-go_internal_models.User:

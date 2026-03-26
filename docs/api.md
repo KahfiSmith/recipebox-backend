@@ -57,7 +57,7 @@ For full request/response schemas, use generated Swagger files.
 
 ## Auth Behavior Notes
 - `POST /api/v1/auth/register` creates the user and immediately triggers the email-verification flow for the registered email address. If debug token exposure is enabled, the register response also includes `data.emailVerification` so development flows do not block on SMTP delivery.
-- Verification emails include the one-time token/code in the email body. Password-reset emails include an 8-digit numeric reset code in the email body. If `FRONTEND_BASE_URL` is configured, the email also includes the frontend action link.
+- Verification emails include an 8-digit numeric verification code in the email body. Password-reset emails include an 8-digit numeric reset code in the email body. If `FRONTEND_BASE_URL` is configured, the email also includes the frontend action link.
 - `POST /api/v1/auth/login` and `POST /api/v1/auth/refresh` set refresh token in HTTP-only cookie (`refresh_token`), and do not expose refresh token in response body.
 - `POST /api/v1/auth/refresh` accepts refresh token from cookie first, and falls back to request body (`refreshToken`).
 - `POST /api/v1/auth/logout` revokes refresh token and clears cookie; when a bearer access token is provided, access session is revoked/blacklisted.
