@@ -463,6 +463,14 @@ func TestRegisterIncludesDebugVerificationTokenInResponse(t *testing.T) {
 	if payload.Data.EmailVerification.Token == "" {
 		t.Fatalf("expected debug verification token in register response")
 	}
+	if len(payload.Data.EmailVerification.Token) != 8 {
+		t.Fatalf("expected 8-digit verification token, got %q", payload.Data.EmailVerification.Token)
+	}
+	for _, ch := range payload.Data.EmailVerification.Token {
+		if ch < '0' || ch > '9' {
+			t.Fatalf("expected numeric verification token, got %q", payload.Data.EmailVerification.Token)
+		}
+	}
 }
 
 func TestRequestEmailVerificationIncludesDebugTokenInResponse(t *testing.T) {
@@ -502,6 +510,14 @@ func TestRequestEmailVerificationIncludesDebugTokenInResponse(t *testing.T) {
 	}
 	if payload.Data.Token == "" {
 		t.Fatalf("expected debug token in response body")
+	}
+	if len(payload.Data.Token) != 8 {
+		t.Fatalf("expected 8-digit verification token, got %q", payload.Data.Token)
+	}
+	for _, ch := range payload.Data.Token {
+		if ch < '0' || ch > '9' {
+			t.Fatalf("expected numeric verification token, got %q", payload.Data.Token)
+		}
 	}
 }
 

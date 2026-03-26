@@ -207,6 +207,14 @@ func TestRegisterSuccess(t *testing.T) {
 	if resp.EmailVerification.Token == "" {
 		t.Fatalf("expected debug verification token in register response")
 	}
+	if len(resp.EmailVerification.Token) != 8 {
+		t.Fatalf("expected 8-digit verification token, got %q", resp.EmailVerification.Token)
+	}
+	for _, ch := range resp.EmailVerification.Token {
+		if ch < '0' || ch > '9' {
+			t.Fatalf("expected numeric verification token, got %q", resp.EmailVerification.Token)
+		}
+	}
 	if resp.EmailVerification.ExpiresAt.IsZero() {
 		t.Fatalf("expected verification expiry in register response")
 	}

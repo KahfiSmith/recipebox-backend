@@ -574,7 +574,7 @@ func (s *AuthService) detectRefreshTokenReuse(ctx context.Context, tokenHash str
 }
 
 func (s *AuthService) issueEmailVerificationToken(ctx context.Context, userID int64, email string) (dto.OneTimeTokenResponse, error) {
-	rawToken, err := generateTokenString(48)
+	rawToken, err := generateNumericCode(8)
 	if err != nil {
 		return dto.OneTimeTokenResponse{}, fmt.Errorf("generate verify token: %w", err)
 	}
