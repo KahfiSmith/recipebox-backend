@@ -103,12 +103,15 @@ func (s *AuthService) Register(ctx context.Context, input dto.RegisterRequest) (
 		return dto.RegisterResponse{}, err
 	}
 
-	if _, err := s.issueEmailVerificationToken(ctx, user.ID, user.Email); err != nil {
+	var verificationResp *dto.OneTimeTokenResponse
+	if issuedResp, err := s.issueEmailVerificationToken(ctx, user.ID, user.Email); err != nil {
 		log.Printf("auth: failed to prepare email verification for newly registered user %s: %v", user.Email, err)
+	} else if issuedResp.Token != "" {
+		verificationResp = &issuedResp
 	}
 
 	user.PasswordHash = ""
-	return dto.RegisterResponse{User: user}, nil
+	return dto.RegisterResponse{User: user, EmailVerification: verificationResp}, nil
 }
 
 func (s *AuthService) Login(ctx context.Context, input dto.LoginRequest, userAgent, ip string) (dto.AuthResponse, error) {

@@ -201,6 +201,15 @@ func TestRegisterSuccess(t *testing.T) {
 	if resp.User.PasswordHash != "" {
 		t.Fatalf("user password hash must be hidden in response")
 	}
+	if resp.EmailVerification == nil {
+		t.Fatalf("expected debug email verification payload in register response")
+	}
+	if resp.EmailVerification.Token == "" {
+		t.Fatalf("expected debug verification token in register response")
+	}
+	if resp.EmailVerification.ExpiresAt.IsZero() {
+		t.Fatalf("expected verification expiry in register response")
+	}
 	if savedHash == "" {
 		t.Fatalf("expected verification token to be saved")
 	}
@@ -278,6 +287,9 @@ func TestRegisterSucceedsWhenVerificationSetupFails(t *testing.T) {
 	}
 	if resp.User.ID != 12 {
 		t.Fatalf("expected created user to be returned")
+	}
+	if resp.EmailVerification != nil {
+		t.Fatalf("did not expect debug email verification payload when setup fails")
 	}
 }
 

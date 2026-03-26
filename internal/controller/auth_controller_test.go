@@ -20,6 +20,7 @@ import (
 )
 
 type mockAuthRepo struct {
+	createUserFn                    func(ctx context.Context, name, email, passwordHash string) (entity.User, error)
 	findUserByEmailFn               func(ctx context.Context, email string) (entity.User, error)
 	findUserByIDFn                  func(ctx context.Context, id int64) (entity.User, error)
 	saveRefreshTokenFn              func(ctx context.Context, userID int64, tokenHash string, expiresAt time.Time, userAgent, ip string) error
@@ -33,8 +34,11 @@ type mockAuthRepo struct {
 
 var _ repository.AuthRepository = mockAuthRepo{}
 
-func (m mockAuthRepo) CreateUser(context.Context, string, string, string) (entity.User, error) {
-	return entity.User{}, nil
+func (m mockAuthRepo) CreateUser(ctx context.Context, name, email, passwordHash string) (entity.User, error) {
+	if m.createUserFn == nil {
+		return entity.User{}, nil
+	}
+	return m.createUserFn(ctx, name, email, passwordHash)
 }
 
 func (m mockAuthRepo) FindUserByEmail(ctx context.Context, email string) (entity.User, error) {
@@ -410,6 +414,54 @@ func TestRegisterValidationReturnsBadRequest(t *testing.T) {
 	}
 	if payload.Error == "" {
 		t.Fatalf("expected validation error message")
+	}
+}
+
+func TestRegisterIncludesDebugVerificationTokenInResponse(t *testing.T) {
+	t.Parallel()
+
+	repo := mockAuthRepo{
+		createUserFn: func(_ context.Context, name, email, passwordHash string) (entity.User, error) {
+			if name != "Kahfi Smith" {
+				t.Fatalf("unexpected name %q", name)
+			}
+			if email != "user@example.com" {
+				t.Fatalf("unexpected email %q", email)
+			}
+			if passwordHash == "" {
+				t.Fatalf("expected password hash")
+			}
+			return entity.User{ID: 44, Name: name, Email: email, PasswordHash: passwordHash}, nil
+		},
+	}
+
+	authService := service.NewAuthService(repo, strings.Repeat("r", 32), 15*time.Minute, 24*time.Hour, bcrypt.MinCost)
+	controller := NewAuthController(authService, false, 24*time.Hour, nil)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", strings.NewReader(`{"name":"Kahfi Smith","email":"user@example.com","password":"secret123"}`))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	controller.Register(rec, req)
+
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d", rec.Code)
+	}
+
+	var payload struct {
+		Data dto.RegisterResponse `json:"data"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if payload.Data.User.Email != "user@example.com" {
+		t.Fatalf("unexpected user email %q", payload.Data.User.Email)
+	}
+	if payload.Data.EmailVerification == nil {
+		t.Fatalf("expected debug verification payload in register response")
+	}
+	if payload.Data.EmailVerification.Token == "" {
+		t.Fatalf("expected debug verification token in register response")
 	}
 }
 

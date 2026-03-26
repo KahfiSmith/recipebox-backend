@@ -46,7 +46,8 @@ type AuthResponse struct {
 }
 
 type RegisterResponse struct {
-	User models.User `json:"user"`
+	User              models.User           `json:"user"`
+	EmailVerification *OneTimeTokenResponse `json:"emailVerification,omitempty"`
 }
 
 type OneTimeTokenResponse struct {
