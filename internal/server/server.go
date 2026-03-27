@@ -55,12 +55,12 @@ func NewServer(cfg config.Config, database *gorm.DB) (*Server, error) {
 	dashboardService.ConfigureDashboardCacheStore(dashboardCacheStore)
 	if cfg.SMTPHost != "" {
 		sender := notification.NewSMTPSender(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUsername, cfg.SMTPPassword, cfg.SMTPFromEmail, cfg.SMTPFromName)
-		authService.ConfigureEmailDelivery(sender, cfg.FrontendBaseURL, cfg.AuthDebugExposeTokens)
+		authService.ConfigureEmailDelivery(sender, cfg.FrontendBaseURL, cfg.APIPublicBaseURL, cfg.AuthDebugExposeTokens)
 	} else {
 		if !cfg.AuthDebugExposeTokens {
 			log.Printf("warning: email delivery unavailable while token exposure is disabled")
 		}
-		authService.ConfigureEmailDelivery(nil, cfg.FrontendBaseURL, cfg.AuthDebugExposeTokens)
+		authService.ConfigureEmailDelivery(nil, cfg.FrontendBaseURL, cfg.APIPublicBaseURL, cfg.AuthDebugExposeTokens)
 	}
 	authController := controller.NewAuthController(authService, cfg.Env == "production", cfg.RefreshTokenTTL, cfg.TrustedProxyCIDRs)
 	dashboardController := controller.NewDashboardController(dashboardService)

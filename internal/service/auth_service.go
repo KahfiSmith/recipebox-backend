@@ -35,6 +35,7 @@ type AuthService struct {
 	now              func() time.Time
 	emailSender      EmailSender
 	frontendBaseURL  string
+	apiPublicBaseURL string
 	exposeTokens     bool
 }
 
@@ -70,9 +71,10 @@ func (s *AuthService) ConfigureAuthStateStore(stateRepo AuthStateStore) {
 	s.stateRepo = stateRepo
 }
 
-func (s *AuthService) ConfigureEmailDelivery(sender EmailSender, frontendBaseURL string, exposeTokens bool) {
+func (s *AuthService) ConfigureEmailDelivery(sender EmailSender, frontendBaseURL, apiPublicBaseURL string, exposeTokens bool) {
 	s.emailSender = sender
 	s.frontendBaseURL = strings.TrimRight(strings.TrimSpace(frontendBaseURL), "/")
+	s.apiPublicBaseURL = strings.TrimRight(strings.TrimSpace(apiPublicBaseURL), "/")
 	s.exposeTokens = exposeTokens
 }
 
@@ -612,7 +614,7 @@ func (s *AuthService) sendEmailVerification(ctx context.Context, to, token strin
 		token,
 		expiresAt.UTC().Format(time.RFC3339),
 	)
-	if link := s.buildActionLink("/verify-email", token); link != "" {
+	if link := s.buildVerificationLink(token); link != "" {
 		body = fmt.Sprintf(
 			"Use this verification code: %s\n\nOr verify your RecipeBox account by opening this link:\n%s\n\nThis code and link expire at %s.",
 			token,
@@ -668,4 +670,11 @@ func (s *AuthService) buildActionLink(path, token string) string {
 		return ""
 	}
 	return s.frontendBaseURL + path + "?token=" + url.QueryEscape(token)
+}
+
+func (s *AuthService) buildVerificationLink(token string) string {
+	if s.apiPublicBaseURL != "" {
+		return s.apiPublicBaseURL + "/api/v1/auth/verify-email/confirm?token=" + url.QueryEscape(token)
+	}
+	return s.buildActionLink("/verify-email", token)
 }

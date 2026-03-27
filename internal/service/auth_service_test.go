@@ -189,7 +189,7 @@ func TestRegisterSuccess(t *testing.T) {
 			}
 			return nil
 		},
-	}, "", true)
+	}, "", "", true)
 
 	resp, err := svc.Register(context.Background(), dto.RegisterRequest{
 		Name:     "Kahfi Smith",
@@ -693,7 +693,7 @@ func TestRequestEmailVerificationSucceedsWhenEmailSendFails(t *testing.T) {
 		sendFn: func(_ context.Context, _, _, _ string) error {
 			return errors.New("smtp down")
 		},
-	}, "", false)
+	}, "", "", false)
 
 	resp, err := svc.RequestEmailVerification(context.Background(), dto.EmailRequest{Email: "user@example.com"})
 	if err != nil {
@@ -723,7 +723,7 @@ func TestSendEmailVerificationIncludesTokenWhenFrontendLinkIsConfigured(t *testi
 			sentBody = body
 			return nil
 		},
-	}, "http://localhost:5173", false)
+	}, "http://localhost:5173", "", false)
 
 	expiresAt := time.Date(2026, 3, 26, 10, 0, 0, 0, time.UTC)
 	if err := svc.sendEmailVerification(context.Background(), "user@example.com", "verify-code-123", expiresAt); err != nil {
@@ -734,6 +734,39 @@ func TestSendEmailVerificationIncludesTokenWhenFrontendLinkIsConfigured(t *testi
 	}
 	if !strings.Contains(sentBody, "http://localhost:5173/verify-email?token=verify-code-123") {
 		t.Fatalf("expected verification link in email body")
+	}
+}
+
+func TestSendEmailVerificationUsesBackendVerificationLinkWhenConfigured(t *testing.T) {
+	t.Parallel()
+
+	var sentBody string
+	svc := NewAuthService(mockAuthRepo{}, strings.Repeat("g", 32), 15*time.Minute, 24*time.Hour, 10)
+	svc.ConfigureEmailDelivery(stubEmailSender{
+		sendFn: func(_ context.Context, to, subject, body string) error {
+			if to != "user@example.com" {
+				t.Fatalf("unexpected recipient %q", to)
+			}
+			if subject == "" {
+				t.Fatalf("expected subject")
+			}
+			sentBody = body
+			return nil
+		},
+	}, "http://localhost:5173", "https://api.recipebox.test", false)
+
+	expiresAt := time.Date(2026, 3, 26, 10, 0, 0, 0, time.UTC)
+	if err := svc.sendEmailVerification(context.Background(), "user@example.com", "verify-code-123", expiresAt); err != nil {
+		t.Fatalf("sendEmailVerification() error = %v", err)
+	}
+	if !strings.Contains(sentBody, "verify-code-123") {
+		t.Fatalf("expected verification code in email body")
+	}
+	if !strings.Contains(sentBody, "https://api.recipebox.test/api/v1/auth/verify-email/confirm?token=verify-code-123") {
+		t.Fatalf("expected backend verification link in email body")
+	}
+	if strings.Contains(sentBody, "http://localhost:5173/verify-email?token=verify-code-123") {
+		t.Fatalf("did not expect frontend verification link when backend link is configured")
 	}
 }
 
@@ -756,7 +789,7 @@ func TestRequestPasswordResetSucceedsWhenEmailSendFails(t *testing.T) {
 		sendFn: func(_ context.Context, _, _, _ string) error {
 			return errors.New("smtp down")
 		},
-	}, "", false)
+	}, "", "", false)
 
 	resp, err := svc.RequestPasswordReset(context.Background(), dto.EmailRequest{Email: "user@example.com"})
 	if err != nil {
@@ -819,7 +852,7 @@ func TestSendPasswordResetIncludesTokenWhenFrontendLinkIsConfigured(t *testing.T
 			sentBody = body
 			return nil
 		},
-	}, "http://localhost:5173", false)
+	}, "http://localhost:5173", "", false)
 
 	expiresAt := time.Date(2026, 3, 26, 10, 0, 0, 0, time.UTC)
 	if err := svc.sendPasswordReset(context.Background(), "user@example.com", "reset-code-123", expiresAt); err != nil {
