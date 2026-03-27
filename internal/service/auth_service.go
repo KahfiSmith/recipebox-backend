@@ -104,8 +104,11 @@ func (s *AuthService) Register(ctx context.Context, input dto.RegisterRequest) (
 	}
 
 	var verificationResp *dto.OneTimeTokenResponse
-	if issuedResp, err := s.issueEmailVerificationToken(ctx, user.ID, user.Email); err != nil {
-		log.Printf("auth: failed to prepare email verification for newly registered user %s: %v", user.Email, err)
+	if issuedResp, err := s.issueEmailVerificationToken(ctx, user.ID, user.Email, true); err != nil {
+		if cleanupErr := s.repo.DeleteUnverifiedUserByID(ctx, user.ID); cleanupErr != nil {
+			return dto.RegisterResponse{}, fmt.Errorf("send verification email: %v; cleanup unverified user: %w", err, cleanupErr)
+		}
+		return dto.RegisterResponse{}, fmt.Errorf("send verification email: %w", err)
 	} else if issuedResp.Token != "" {
 		verificationResp = &issuedResp
 	}
@@ -279,7 +282,7 @@ func (s *AuthService) RequestEmailVerification(ctx context.Context, input dto.Em
 		return dto.OneTimeTokenResponse{}, nil
 	}
 
-	return s.issueEmailVerificationToken(ctx, user.ID, user.Email)
+	return s.issueEmailVerificationToken(ctx, user.ID, user.Email, false)
 }
 
 func (s *AuthService) VerifyEmail(ctx context.Context, token string) error {
@@ -573,7 +576,7 @@ func (s *AuthService) detectRefreshTokenReuse(ctx context.Context, tokenHash str
 	}
 }
 
-func (s *AuthService) issueEmailVerificationToken(ctx context.Context, userID int64, email string) (dto.OneTimeTokenResponse, error) {
+func (s *AuthService) issueEmailVerificationToken(ctx context.Context, userID int64, email string, requireEmailDelivery bool) (dto.OneTimeTokenResponse, error) {
 	rawToken, err := generateNumericCode(8)
 	if err != nil {
 		return dto.OneTimeTokenResponse{}, fmt.Errorf("generate verify token: %w", err)
@@ -588,7 +591,13 @@ func (s *AuthService) issueEmailVerificationToken(ctx context.Context, userID in
 		return dto.OneTimeTokenResponse{}, err
 	}
 
-	s.trySendEmailVerification(ctx, email, rawToken, expiresAt)
+	if requireEmailDelivery {
+		if err := s.sendEmailVerification(ctx, email, rawToken, expiresAt); err != nil {
+			return dto.OneTimeTokenResponse{}, err
+		}
+	} else {
+		s.trySendEmailVerification(ctx, email, rawToken, expiresAt)
+	}
 	if !s.exposeTokens {
 		rawToken = ""
 	}

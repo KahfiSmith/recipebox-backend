@@ -26,6 +26,7 @@ func (s stubEmailSender) Send(ctx context.Context, to, subject, body string) err
 
 type mockAuthRepo struct {
 	createUserFn                    func(ctx context.Context, name, email, passwordHash string) (entity.User, error)
+	deleteUnverifiedUserByIDFn      func(ctx context.Context, id int64) error
 	findUserByEmailFn               func(ctx context.Context, email string) (entity.User, error)
 	findUserByIDFn                  func(ctx context.Context, id int64) (entity.User, error)
 	updateUserPasswordFn            func(ctx context.Context, userID int64, passwordHash string) error
@@ -46,6 +47,13 @@ func (m mockAuthRepo) CreateUser(ctx context.Context, name, email, passwordHash 
 		return entity.User{}, errors.New("unexpected CreateUser call")
 	}
 	return m.createUserFn(ctx, name, email, passwordHash)
+}
+
+func (m mockAuthRepo) DeleteUnverifiedUserByID(ctx context.Context, id int64) error {
+	if m.deleteUnverifiedUserByIDFn == nil {
+		return nil
+	}
+	return m.deleteUnverifiedUserByIDFn(ctx, id)
 }
 
 func (m mockAuthRepo) FindUserByEmail(ctx context.Context, email string) (entity.User, error) {
@@ -265,9 +273,10 @@ func TestRegisterNameRequired(t *testing.T) {
 	}
 }
 
-func TestRegisterSucceedsWhenVerificationSetupFails(t *testing.T) {
+func TestRegisterFailsAndDeletesUserWhenVerificationSetupFails(t *testing.T) {
 	t.Parallel()
 
+	deletedUserID := int64(0)
 	repo := mockAuthRepo{
 		createUserFn: func(_ context.Context, name, email, passwordHash string) (entity.User, error) {
 			return entity.User{ID: 12, Name: name, Email: email, PasswordHash: passwordHash}, nil
@@ -281,23 +290,67 @@ func TestRegisterSucceedsWhenVerificationSetupFails(t *testing.T) {
 			}
 			return errors.New("verification store unavailable")
 		},
+		deleteUnverifiedUserByIDFn: func(_ context.Context, id int64) error {
+			deletedUserID = id
+			return nil
+		},
 	}
 
 	svc := NewAuthService(repo, strings.Repeat("z", 32), 15*time.Minute, 24*time.Hour, 10)
 
-	resp, err := svc.Register(context.Background(), dto.RegisterRequest{
+	_, err := svc.Register(context.Background(), dto.RegisterRequest{
 		Name:     "Kahfi Smith",
 		Email:    "user@example.com",
 		Password: "secret123",
 	})
-	if err != nil {
-		t.Fatalf("Register() error = %v", err)
+	if err == nil {
+		t.Fatalf("expected register to fail when verification setup fails")
 	}
-	if resp.User.ID != 12 {
-		t.Fatalf("expected created user to be returned")
+	if deletedUserID != 12 {
+		t.Fatalf("expected created user to be cleaned up, got %d", deletedUserID)
 	}
-	if resp.EmailVerification != nil {
-		t.Fatalf("did not expect debug email verification payload when setup fails")
+}
+
+func TestRegisterFailsAndDeletesUserWhenVerificationEmailSendFails(t *testing.T) {
+	t.Parallel()
+
+	deletedUserID := int64(0)
+	repo := mockAuthRepo{
+		createUserFn: func(_ context.Context, name, email, passwordHash string) (entity.User, error) {
+			return entity.User{ID: 13, Name: name, Email: email, PasswordHash: passwordHash}, nil
+		},
+		saveEmailVerificationTokenFn: func(_ context.Context, userID int64, tokenHash string, expiresAt time.Time) error {
+			if userID != 13 {
+				t.Fatalf("unexpected userID %d", userID)
+			}
+			if tokenHash == "" || expiresAt.IsZero() {
+				t.Fatalf("expected verification token to be generated")
+			}
+			return nil
+		},
+		deleteUnverifiedUserByIDFn: func(_ context.Context, id int64) error {
+			deletedUserID = id
+			return nil
+		},
+	}
+
+	svc := NewAuthService(repo, strings.Repeat("z", 32), 15*time.Minute, 24*time.Hour, 10)
+	svc.ConfigureEmailDelivery(stubEmailSender{
+		sendFn: func(_ context.Context, _, _, _ string) error {
+			return errors.New("smtp down")
+		},
+	}, "", "", false)
+
+	_, err := svc.Register(context.Background(), dto.RegisterRequest{
+		Name:     "Kahfi Smith",
+		Email:    "user@example.com",
+		Password: "secret123",
+	})
+	if err == nil {
+		t.Fatalf("expected register to fail when verification email send fails")
+	}
+	if deletedUserID != 13 {
+		t.Fatalf("expected created user to be cleaned up, got %d", deletedUserID)
 	}
 }
 

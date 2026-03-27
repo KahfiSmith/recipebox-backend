@@ -21,6 +21,7 @@ import (
 
 type mockAuthRepo struct {
 	createUserFn                    func(ctx context.Context, name, email, passwordHash string) (entity.User, error)
+	deleteUnverifiedUserByIDFn      func(ctx context.Context, id int64) error
 	findUserByEmailFn               func(ctx context.Context, email string) (entity.User, error)
 	findUserByIDFn                  func(ctx context.Context, id int64) (entity.User, error)
 	saveRefreshTokenFn              func(ctx context.Context, userID int64, tokenHash string, expiresAt time.Time, userAgent, ip string) error
@@ -39,6 +40,13 @@ func (m mockAuthRepo) CreateUser(ctx context.Context, name, email, passwordHash 
 		return entity.User{}, nil
 	}
 	return m.createUserFn(ctx, name, email, passwordHash)
+}
+
+func (m mockAuthRepo) DeleteUnverifiedUserByID(ctx context.Context, id int64) error {
+	if m.deleteUnverifiedUserByIDFn == nil {
+		return nil
+	}
+	return m.deleteUnverifiedUserByIDFn(ctx, id)
 }
 
 func (m mockAuthRepo) FindUserByEmail(ctx context.Context, email string) (entity.User, error) {

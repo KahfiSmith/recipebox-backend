@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	"recipebox-backend-go/internal/models"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	"recipebox-backend-go/internal/models"
 )
 
 type AuthGormRepository struct {
@@ -28,6 +28,16 @@ func (r *AuthGormRepository) CreateUser(ctx context.Context, name, email, passwo
 		return models.User{}, fmt.Errorf("insert user: %w", err)
 	}
 	return user, nil
+}
+
+func (r *AuthGormRepository) DeleteUnverifiedUserByID(ctx context.Context, id int64) error {
+	result := r.db.WithContext(ctx).
+		Where("id = ? AND email_verified_at IS NULL", id).
+		Delete(&models.User{})
+	if result.Error != nil {
+		return fmt.Errorf("delete unverified user: %w", result.Error)
+	}
+	return nil
 }
 
 func (r *AuthGormRepository) FindUserByEmail(ctx context.Context, email string) (models.User, error) {
