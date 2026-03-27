@@ -17,6 +17,7 @@ func RegisterAuthRoutes(r chi.Router, authController *controller.AuthController,
 
 		r.With(authSensitiveRateLimit).Post("/login", authController.Login)
 		r.With(authSensitiveRateLimit).Post("/verify-email/request", authController.RequestEmailVerification)
+		r.Get("/verify-email/confirm", authController.VerifyEmailLink)
 		r.Post("/verify-email/confirm", authController.VerifyEmail)
 		r.With(authSensitiveRateLimit).Post("/password/forgot", authController.ForgotPassword)
 		r.Post("/password/reset", authController.ResetPassword)

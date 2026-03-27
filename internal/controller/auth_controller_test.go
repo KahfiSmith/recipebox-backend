@@ -2,6 +2,8 @@ package controller
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"net"
 	"net/http"
@@ -30,6 +32,7 @@ type mockAuthRepo struct {
 	revokeRefreshTokenFn            func(ctx context.Context, tokenHash string) error
 	findRefreshTokenByHashFn        func(ctx context.Context, tokenHash string) (entity.RefreshToken, error)
 	revokeAllUserRefreshTokensFn    func(ctx context.Context, userID int64) error
+	consumeEmailVerificationTokenFn func(ctx context.Context, tokenHash string, now time.Time) error
 	consumePasswordResetAndUpdateFn func(ctx context.Context, tokenHash, newPasswordHash string, now time.Time) error
 }
 
@@ -113,8 +116,52 @@ func (m mockAuthRepo) SaveEmailVerificationToken(context.Context, int64, string,
 	return nil
 }
 
-func (m mockAuthRepo) ConsumeEmailVerificationToken(context.Context, string, time.Time) error {
-	return nil
+func (m mockAuthRepo) ConsumeEmailVerificationToken(ctx context.Context, tokenHash string, now time.Time) error {
+	if m.consumeEmailVerificationTokenFn == nil {
+		return nil
+	}
+	return m.consumeEmailVerificationTokenFn(ctx, tokenHash, now)
+}
+
+func hashTestToken(token string) string {
+	sum := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(sum[:])
+}
+
+func TestVerifyEmailLinkAcceptsTokenFromQuery(t *testing.T) {
+	t.Parallel()
+
+	repo := mockAuthRepo{
+		consumeEmailVerificationTokenFn: func(_ context.Context, tokenHash string, now time.Time) error {
+			if tokenHash != hashTestToken("12345678") {
+				t.Fatalf("unexpected token hash %q", tokenHash)
+			}
+			if now.IsZero() {
+				t.Fatalf("expected verification timestamp")
+			}
+			return nil
+		},
+	}
+
+	authService := service.NewAuthService(repo, strings.Repeat("v", 32), 15*time.Minute, 24*time.Hour, bcrypt.MinCost)
+	controller := NewAuthController(authService, false, 24*time.Hour, nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/auth/verify-email/confirm?token=12345678", nil)
+	rec := httptest.NewRecorder()
+
+	controller.VerifyEmailLink(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+
+	var payload map[string]string
+	if err := json.NewDecoder(rec.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if payload["message"] != "email verified" {
+		t.Fatalf("unexpected message %q", payload["message"])
+	}
 }
 
 func (m mockAuthRepo) SavePasswordResetToken(context.Context, int64, string, time.Time) error {
@@ -280,7 +327,7 @@ func TestRefreshUsesCookieAndRotatesRefreshToken(t *testing.T) {
 			if !newExpiresAt.After(now) {
 				t.Fatalf("expected expiry after rotation time")
 			}
-			if newExpiresAt.Before(now.Add(23 * time.Hour)) || newExpiresAt.After(now.Add(24*time.Hour+time.Minute)) {
+			if newExpiresAt.Before(now.Add(23*time.Hour)) || newExpiresAt.After(now.Add(24*time.Hour+time.Minute)) {
 				t.Fatalf("unexpected new expiry %v", newExpiresAt)
 			}
 			if userAgent != "refresh-agent" {
