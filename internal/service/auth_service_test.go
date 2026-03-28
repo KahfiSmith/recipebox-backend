@@ -215,13 +215,8 @@ func TestRegisterSuccess(t *testing.T) {
 	if resp.EmailVerification.Token == "" {
 		t.Fatalf("expected debug verification token in register response")
 	}
-	if len(resp.EmailVerification.Token) != 8 {
-		t.Fatalf("expected 8-digit verification token, got %q", resp.EmailVerification.Token)
-	}
-	for _, ch := range resp.EmailVerification.Token {
-		if ch < '0' || ch > '9' {
-			t.Fatalf("expected numeric verification token, got %q", resp.EmailVerification.Token)
-		}
+	if len(resp.EmailVerification.Token) < 32 {
+		t.Fatalf("expected opaque verification token, got %q", resp.EmailVerification.Token)
 	}
 	if resp.EmailVerification.ExpiresAt.IsZero() {
 		t.Fatalf("expected verification expiry in register response")
@@ -351,6 +346,52 @@ func TestRegisterFailsAndDeletesUserWhenVerificationEmailSendFails(t *testing.T)
 	}
 	if deletedUserID != 13 {
 		t.Fatalf("expected created user to be cleaned up, got %d", deletedUserID)
+	}
+}
+
+func TestRegisterSucceedsWhenVerificationEmailSendFailsAndDebugExposureEnabled(t *testing.T) {
+	t.Parallel()
+
+	deletedUserID := int64(0)
+	repo := mockAuthRepo{
+		createUserFn: func(_ context.Context, name, email, passwordHash string) (entity.User, error) {
+			return entity.User{ID: 14, Name: name, Email: email, PasswordHash: passwordHash}, nil
+		},
+		saveEmailVerificationTokenFn: func(_ context.Context, userID int64, tokenHash string, expiresAt time.Time) error {
+			if userID != 14 {
+				t.Fatalf("unexpected userID %d", userID)
+			}
+			if tokenHash == "" || expiresAt.IsZero() {
+				t.Fatalf("expected verification token to be generated")
+			}
+			return nil
+		},
+		deleteUnverifiedUserByIDFn: func(_ context.Context, id int64) error {
+			deletedUserID = id
+			return nil
+		},
+	}
+
+	svc := NewAuthService(repo, strings.Repeat("z", 32), 15*time.Minute, 24*time.Hour, 10)
+	svc.ConfigureEmailDelivery(stubEmailSender{
+		sendFn: func(_ context.Context, _, _, _ string) error {
+			return errors.New("smtp down")
+		},
+	}, "", "", true)
+
+	resp, err := svc.Register(context.Background(), dto.RegisterRequest{
+		Name:     "Kahfi Smith",
+		Email:    "user@example.com",
+		Password: "secret123",
+	})
+	if err != nil {
+		t.Fatalf("expected register to succeed in debug mode, got %v", err)
+	}
+	if deletedUserID != 0 {
+		t.Fatalf("did not expect created user to be cleaned up, got %d", deletedUserID)
+	}
+	if resp.EmailVerification == nil || resp.EmailVerification.Token == "" {
+		t.Fatalf("expected debug verification payload when SMTP delivery fails")
 	}
 }
 
@@ -669,6 +710,9 @@ func TestRequestEmailVerificationSuccess(t *testing.T) {
 	if resp.Token == "" {
 		t.Fatalf("expected verify token")
 	}
+	if len(resp.Token) < 32 {
+		t.Fatalf("expected opaque verification token, got %q", resp.Token)
+	}
 	if savedHash != hashToken(resp.Token) {
 		t.Fatalf("stored hash mismatch")
 	}
@@ -707,7 +751,7 @@ func TestRequestEmailVerificationSucceedsWhenEmailSendFails(t *testing.T) {
 	}
 }
 
-func TestSendEmailVerificationIncludesTokenWhenFrontendLinkIsConfigured(t *testing.T) {
+func TestSendEmailVerificationUsesFrontendVerificationLink(t *testing.T) {
 	t.Parallel()
 
 	var sentBody string
@@ -729,15 +773,15 @@ func TestSendEmailVerificationIncludesTokenWhenFrontendLinkIsConfigured(t *testi
 	if err := svc.sendEmailVerification(context.Background(), "user@example.com", "verify-code-123", expiresAt); err != nil {
 		t.Fatalf("sendEmailVerification() error = %v", err)
 	}
-	if !strings.Contains(sentBody, "verify-code-123") {
-		t.Fatalf("expected verification code in email body")
-	}
-	if !strings.Contains(sentBody, "http://localhost:5173/verify-email?token=verify-code-123") {
+	if !strings.Contains(sentBody, "http://localhost:5173/auth/verify-email?token=verify-code-123&email=user%40example.com") {
 		t.Fatalf("expected verification link in email body")
+	}
+	if strings.Contains(sentBody, "Use this verification code") || strings.Contains(sentBody, "Use this token to verify your email") {
+		t.Fatalf("did not expect a standalone verification code in email body")
 	}
 }
 
-func TestSendEmailVerificationUsesBackendVerificationLinkWhenConfigured(t *testing.T) {
+func TestSendEmailVerificationFallsBackToBackendVerificationLinkWhenFrontendLinkMissing(t *testing.T) {
 	t.Parallel()
 
 	var sentBody string
@@ -753,20 +797,17 @@ func TestSendEmailVerificationUsesBackendVerificationLinkWhenConfigured(t *testi
 			sentBody = body
 			return nil
 		},
-	}, "http://localhost:5173", "https://api.recipebox.test", false)
+	}, "", "https://api.recipebox.test", false)
 
 	expiresAt := time.Date(2026, 3, 26, 10, 0, 0, 0, time.UTC)
 	if err := svc.sendEmailVerification(context.Background(), "user@example.com", "verify-code-123", expiresAt); err != nil {
 		t.Fatalf("sendEmailVerification() error = %v", err)
 	}
-	if !strings.Contains(sentBody, "verify-code-123") {
-		t.Fatalf("expected verification code in email body")
-	}
 	if !strings.Contains(sentBody, "https://api.recipebox.test/api/v1/auth/verify-email/confirm?token=verify-code-123") {
 		t.Fatalf("expected backend verification link in email body")
 	}
-	if strings.Contains(sentBody, "http://localhost:5173/verify-email?token=verify-code-123") {
-		t.Fatalf("did not expect frontend verification link when backend link is configured")
+	if strings.Contains(sentBody, "Use this verification code") || strings.Contains(sentBody, "Use this token to verify your email") {
+		t.Fatalf("did not expect a standalone verification code in email body")
 	}
 }
 

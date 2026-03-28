@@ -579,7 +579,7 @@ func (s *AuthService) detectRefreshTokenReuse(ctx context.Context, tokenHash str
 }
 
 func (s *AuthService) issueEmailVerificationToken(ctx context.Context, userID int64, email string, requireEmailDelivery bool) (dto.OneTimeTokenResponse, error) {
-	rawToken, err := generateNumericCode(8)
+	rawToken, err := generateTokenString(32)
 	if err != nil {
 		return dto.OneTimeTokenResponse{}, fmt.Errorf("generate verify token: %w", err)
 	}
@@ -595,7 +595,10 @@ func (s *AuthService) issueEmailVerificationToken(ctx context.Context, userID in
 
 	if requireEmailDelivery {
 		if err := s.sendEmailVerification(ctx, email, rawToken, expiresAt); err != nil {
-			return dto.OneTimeTokenResponse{}, err
+			if !s.exposeTokens {
+				return dto.OneTimeTokenResponse{}, err
+			}
+			log.Printf("auth: failed to send email verification to %s: %v", email, err)
 		}
 	} else {
 		s.trySendEmailVerification(ctx, email, rawToken, expiresAt)
@@ -610,18 +613,10 @@ func (s *AuthService) issueEmailVerificationToken(ctx context.Context, userID in
 func (s *AuthService) sendEmailVerification(ctx context.Context, to, token string, expiresAt time.Time) error {
 	subject := "Verify your RecipeBox account"
 	body := fmt.Sprintf(
-		"Use this token to verify your email: %s\nExpires at: %s",
-		token,
+		"Open this link to verify your RecipeBox account:\n%s\n\nThis link expires at %s.",
+		s.buildVerificationLink(to, token),
 		expiresAt.UTC().Format(time.RFC3339),
 	)
-	if link := s.buildVerificationLink(token); link != "" {
-		body = fmt.Sprintf(
-			"Use this verification code: %s\n\nOr verify your RecipeBox account by opening this link:\n%s\n\nThis code and link expire at %s.",
-			token,
-			link,
-			expiresAt.UTC().Format(time.RFC3339),
-		)
-	}
 	return s.sendEmail(ctx, to, subject, body)
 }
 
@@ -672,9 +667,12 @@ func (s *AuthService) buildActionLink(path, token string) string {
 	return s.frontendBaseURL + path + "?token=" + url.QueryEscape(token)
 }
 
-func (s *AuthService) buildVerificationLink(token string) string {
+func (s *AuthService) buildVerificationLink(email, token string) string {
+	if s.frontendBaseURL != "" {
+		return s.frontendBaseURL + "/auth/verify-email?token=" + url.QueryEscape(token) + "&email=" + url.QueryEscape(email)
+	}
 	if s.apiPublicBaseURL != "" {
 		return s.apiPublicBaseURL + "/api/v1/auth/verify-email/confirm?token=" + url.QueryEscape(token)
 	}
-	return s.buildActionLink("/verify-email", token)
+	return ""
 }
