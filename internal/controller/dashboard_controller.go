@@ -45,7 +45,7 @@ func (h *DashboardController) GetDashboard(w http.ResponseWriter, r *http.Reques
 
 	resp, err := h.service.GetDashboard(r.Context(), userID)
 	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, "failed to load dashboard")
+		writeInternalError(w, r, "failed to load dashboard", err)
 		return
 	}
 
@@ -76,7 +76,7 @@ func (h *DashboardController) GetRecipes(w http.ResponseWriter, r *http.Request)
 
 	resp, err := h.service.ListRecipesPage(r.Context(), userID, limit, offset)
 	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, "failed to load recipes")
+		writeInternalError(w, r, "failed to load recipes", err)
 		return
 	}
 
@@ -108,7 +108,7 @@ func (h *DashboardController) CreateRecipe(w http.ResponseWriter, r *http.Reques
 
 	resp, err := h.service.CreateRecipe(r.Context(), userID, input)
 	if err != nil {
-		h.handleDashboardMutationError(w, err)
+		h.handleDashboardMutationError(w, r, err)
 		return
 	}
 
@@ -146,7 +146,7 @@ func (h *DashboardController) UpdateRecipe(w http.ResponseWriter, r *http.Reques
 
 	resp, err := h.service.UpdateRecipe(r.Context(), userID, recipeID, input)
 	if err != nil {
-		h.handleDashboardMutationError(w, err)
+		h.handleDashboardMutationError(w, r, err)
 		return
 	}
 
@@ -175,7 +175,7 @@ func (h *DashboardController) DeleteRecipe(w http.ResponseWriter, r *http.Reques
 	}
 
 	if err := h.service.DeleteRecipe(r.Context(), userID, recipeID); err != nil {
-		h.handleDashboardMutationError(w, err)
+		h.handleDashboardMutationError(w, r, err)
 		return
 	}
 
@@ -206,7 +206,7 @@ func (h *DashboardController) GetMealPlans(w http.ResponseWriter, r *http.Reques
 
 	resp, err := h.service.ListMealPlansPage(r.Context(), userID, limit, offset)
 	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, "failed to load meal plans")
+		writeInternalError(w, r, "failed to load meal plans", err)
 		return
 	}
 
@@ -238,7 +238,7 @@ func (h *DashboardController) CreateMealPlan(w http.ResponseWriter, r *http.Requ
 
 	resp, err := h.service.CreateMealPlan(r.Context(), userID, input)
 	if err != nil {
-		h.handleDashboardMutationError(w, err)
+		h.handleDashboardMutationError(w, r, err)
 		return
 	}
 
@@ -276,7 +276,7 @@ func (h *DashboardController) UpdateMealPlan(w http.ResponseWriter, r *http.Requ
 
 	resp, err := h.service.UpdateMealPlan(r.Context(), userID, mealPlanID, input)
 	if err != nil {
-		h.handleDashboardMutationError(w, err)
+		h.handleDashboardMutationError(w, r, err)
 		return
 	}
 
@@ -305,7 +305,7 @@ func (h *DashboardController) DeleteMealPlan(w http.ResponseWriter, r *http.Requ
 	}
 
 	if err := h.service.DeleteMealPlan(r.Context(), userID, mealPlanID); err != nil {
-		h.handleDashboardMutationError(w, err)
+		h.handleDashboardMutationError(w, r, err)
 		return
 	}
 
@@ -336,7 +336,7 @@ func (h *DashboardController) GetShoppingItems(w http.ResponseWriter, r *http.Re
 
 	resp, err := h.service.ListShoppingItemsPage(r.Context(), userID, limit, offset)
 	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, "failed to load shopping items")
+		writeInternalError(w, r, "failed to load shopping items", err)
 		return
 	}
 
@@ -368,7 +368,7 @@ func (h *DashboardController) CreateShoppingItem(w http.ResponseWriter, r *http.
 
 	resp, err := h.service.CreateShoppingItem(r.Context(), userID, input)
 	if err != nil {
-		h.handleDashboardMutationError(w, err)
+		h.handleDashboardMutationError(w, r, err)
 		return
 	}
 
@@ -406,7 +406,7 @@ func (h *DashboardController) UpdateShoppingItem(w http.ResponseWriter, r *http.
 
 	resp, err := h.service.UpdateShoppingItem(r.Context(), userID, itemID, input)
 	if err != nil {
-		h.handleDashboardMutationError(w, err)
+		h.handleDashboardMutationError(w, r, err)
 		return
 	}
 
@@ -435,7 +435,7 @@ func (h *DashboardController) DeleteShoppingItem(w http.ResponseWriter, r *http.
 	}
 
 	if err := h.service.DeleteShoppingItem(r.Context(), userID, itemID); err != nil {
-		h.handleDashboardMutationError(w, err)
+		h.handleDashboardMutationError(w, r, err)
 		return
 	}
 
@@ -447,14 +447,14 @@ func (h *DashboardController) userIDFromRequest(r *http.Request) (int64, bool) {
 	return userID, ok
 }
 
-func (h *DashboardController) handleDashboardMutationError(w http.ResponseWriter, err error) {
+func (h *DashboardController) handleDashboardMutationError(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
 	case models.IsValidationError(err):
 		utils.Error(w, http.StatusBadRequest, err.Error())
 	case errors.Is(err, models.ErrNotFound):
 		utils.Error(w, http.StatusNotFound, "resource not found")
 	default:
-		utils.Error(w, http.StatusInternalServerError, "internal server error")
+		writeInternalError(w, r, "internal server error", err)
 	}
 }
 
