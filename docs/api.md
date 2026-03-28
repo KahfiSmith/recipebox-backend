@@ -23,6 +23,7 @@ Generate Swagger from annotations:
   - `POST /api/v1/auth/register`
   - `POST /api/v1/auth/login`
   - `POST /api/v1/auth/verify-email/request`
+  - `GET /api/v1/auth/verify-email/confirm`
   - `POST /api/v1/auth/verify-email/confirm`
   - `POST /api/v1/auth/password/forgot`
   - `POST /api/v1/auth/password/reset`
@@ -56,8 +57,9 @@ For full request/response schemas, use generated Swagger files.
   - `GET /api/v1/shopping-items`
 
 ## Auth Behavior Notes
-- `POST /api/v1/auth/register` creates the user and immediately triggers the email-verification flow for the registered email address. If debug token exposure is enabled, the register response also includes `data.emailVerification` so development flows do not block on SMTP delivery.
-- Verification emails include an 8-digit numeric verification code in the email body. Password-reset emails include an 8-digit numeric reset code in the email body. If `FRONTEND_BASE_URL` is configured, the email also includes the frontend action link.
+- `POST /api/v1/auth/register` creates the user and immediately triggers the email-verification flow for the registered email address. If verification-token setup or email delivery fails during registration, the request now fails and the newly created unverified user is rolled back. If debug token exposure is enabled, the successful register response also includes `data.emailVerification` so development flows do not block on SMTP delivery.
+- Verification emails include only a magic-link style verification URL in the email body, not a numeric code. The verification token is an opaque random string, and the link currently expires after 24 hours. When `FRONTEND_BASE_URL` is configured, the email points to the frontend verification route at `/auth/verify-email?token=...&email=...`. If `FRONTEND_BASE_URL` is not set, the service falls back to the backend confirmation link handled by `GET /api/v1/auth/verify-email/confirm`.
+- Password-reset emails include an 8-digit numeric reset code in the email body. If `FRONTEND_BASE_URL` is configured, the email also includes the frontend reset-password link.
 - `POST /api/v1/auth/login` and `POST /api/v1/auth/refresh` set refresh token in HTTP-only cookie (`refresh_token`), and do not expose refresh token in response body.
 - `POST /api/v1/auth/refresh` accepts refresh token from cookie first, and falls back to request body (`refreshToken`).
 - `POST /api/v1/auth/logout` revokes refresh token and clears cookie; when a bearer access token is provided, access session is revoked/blacklisted.

@@ -26,6 +26,7 @@ func (s stubEmailSender) Send(ctx context.Context, to, subject, body string) err
 
 type mockAuthRepo struct {
 	createUserFn                    func(ctx context.Context, name, email, passwordHash string) (entity.User, error)
+	deleteUnverifiedUserByIDFn      func(ctx context.Context, id int64) error
 	findUserByEmailFn               func(ctx context.Context, email string) (entity.User, error)
 	findUserByIDFn                  func(ctx context.Context, id int64) (entity.User, error)
 	updateUserPasswordFn            func(ctx context.Context, userID int64, passwordHash string) error
@@ -46,6 +47,13 @@ func (m mockAuthRepo) CreateUser(ctx context.Context, name, email, passwordHash 
 		return entity.User{}, errors.New("unexpected CreateUser call")
 	}
 	return m.createUserFn(ctx, name, email, passwordHash)
+}
+
+func (m mockAuthRepo) DeleteUnverifiedUserByID(ctx context.Context, id int64) error {
+	if m.deleteUnverifiedUserByIDFn == nil {
+		return nil
+	}
+	return m.deleteUnverifiedUserByIDFn(ctx, id)
 }
 
 func (m mockAuthRepo) FindUserByEmail(ctx context.Context, email string) (entity.User, error) {
@@ -181,7 +189,7 @@ func TestRegisterSuccess(t *testing.T) {
 			}
 			return nil
 		},
-	}, "", true)
+	}, "", "", true)
 
 	resp, err := svc.Register(context.Background(), dto.RegisterRequest{
 		Name:     "Kahfi Smith",
@@ -207,13 +215,8 @@ func TestRegisterSuccess(t *testing.T) {
 	if resp.EmailVerification.Token == "" {
 		t.Fatalf("expected debug verification token in register response")
 	}
-	if len(resp.EmailVerification.Token) != 8 {
-		t.Fatalf("expected 8-digit verification token, got %q", resp.EmailVerification.Token)
-	}
-	for _, ch := range resp.EmailVerification.Token {
-		if ch < '0' || ch > '9' {
-			t.Fatalf("expected numeric verification token, got %q", resp.EmailVerification.Token)
-		}
+	if len(resp.EmailVerification.Token) < 32 {
+		t.Fatalf("expected opaque verification token, got %q", resp.EmailVerification.Token)
 	}
 	if resp.EmailVerification.ExpiresAt.IsZero() {
 		t.Fatalf("expected verification expiry in register response")
@@ -265,9 +268,10 @@ func TestRegisterNameRequired(t *testing.T) {
 	}
 }
 
-func TestRegisterSucceedsWhenVerificationSetupFails(t *testing.T) {
+func TestRegisterFailsAndDeletesUserWhenVerificationSetupFails(t *testing.T) {
 	t.Parallel()
 
+	deletedUserID := int64(0)
 	repo := mockAuthRepo{
 		createUserFn: func(_ context.Context, name, email, passwordHash string) (entity.User, error) {
 			return entity.User{ID: 12, Name: name, Email: email, PasswordHash: passwordHash}, nil
@@ -281,9 +285,99 @@ func TestRegisterSucceedsWhenVerificationSetupFails(t *testing.T) {
 			}
 			return errors.New("verification store unavailable")
 		},
+		deleteUnverifiedUserByIDFn: func(_ context.Context, id int64) error {
+			deletedUserID = id
+			return nil
+		},
 	}
 
 	svc := NewAuthService(repo, strings.Repeat("z", 32), 15*time.Minute, 24*time.Hour, 10)
+
+	_, err := svc.Register(context.Background(), dto.RegisterRequest{
+		Name:     "Kahfi Smith",
+		Email:    "user@example.com",
+		Password: "secret123",
+	})
+	if err == nil {
+		t.Fatalf("expected register to fail when verification setup fails")
+	}
+	if deletedUserID != 12 {
+		t.Fatalf("expected created user to be cleaned up, got %d", deletedUserID)
+	}
+}
+
+func TestRegisterFailsAndDeletesUserWhenVerificationEmailSendFails(t *testing.T) {
+	t.Parallel()
+
+	deletedUserID := int64(0)
+	repo := mockAuthRepo{
+		createUserFn: func(_ context.Context, name, email, passwordHash string) (entity.User, error) {
+			return entity.User{ID: 13, Name: name, Email: email, PasswordHash: passwordHash}, nil
+		},
+		saveEmailVerificationTokenFn: func(_ context.Context, userID int64, tokenHash string, expiresAt time.Time) error {
+			if userID != 13 {
+				t.Fatalf("unexpected userID %d", userID)
+			}
+			if tokenHash == "" || expiresAt.IsZero() {
+				t.Fatalf("expected verification token to be generated")
+			}
+			return nil
+		},
+		deleteUnverifiedUserByIDFn: func(_ context.Context, id int64) error {
+			deletedUserID = id
+			return nil
+		},
+	}
+
+	svc := NewAuthService(repo, strings.Repeat("z", 32), 15*time.Minute, 24*time.Hour, 10)
+	svc.ConfigureEmailDelivery(stubEmailSender{
+		sendFn: func(_ context.Context, _, _, _ string) error {
+			return errors.New("smtp down")
+		},
+	}, "", "", false)
+
+	_, err := svc.Register(context.Background(), dto.RegisterRequest{
+		Name:     "Kahfi Smith",
+		Email:    "user@example.com",
+		Password: "secret123",
+	})
+	if err == nil {
+		t.Fatalf("expected register to fail when verification email send fails")
+	}
+	if deletedUserID != 13 {
+		t.Fatalf("expected created user to be cleaned up, got %d", deletedUserID)
+	}
+}
+
+func TestRegisterSucceedsWhenVerificationEmailSendFailsAndDebugExposureEnabled(t *testing.T) {
+	t.Parallel()
+
+	deletedUserID := int64(0)
+	repo := mockAuthRepo{
+		createUserFn: func(_ context.Context, name, email, passwordHash string) (entity.User, error) {
+			return entity.User{ID: 14, Name: name, Email: email, PasswordHash: passwordHash}, nil
+		},
+		saveEmailVerificationTokenFn: func(_ context.Context, userID int64, tokenHash string, expiresAt time.Time) error {
+			if userID != 14 {
+				t.Fatalf("unexpected userID %d", userID)
+			}
+			if tokenHash == "" || expiresAt.IsZero() {
+				t.Fatalf("expected verification token to be generated")
+			}
+			return nil
+		},
+		deleteUnverifiedUserByIDFn: func(_ context.Context, id int64) error {
+			deletedUserID = id
+			return nil
+		},
+	}
+
+	svc := NewAuthService(repo, strings.Repeat("z", 32), 15*time.Minute, 24*time.Hour, 10)
+	svc.ConfigureEmailDelivery(stubEmailSender{
+		sendFn: func(_ context.Context, _, _, _ string) error {
+			return errors.New("smtp down")
+		},
+	}, "", "", true)
 
 	resp, err := svc.Register(context.Background(), dto.RegisterRequest{
 		Name:     "Kahfi Smith",
@@ -291,13 +385,13 @@ func TestRegisterSucceedsWhenVerificationSetupFails(t *testing.T) {
 		Password: "secret123",
 	})
 	if err != nil {
-		t.Fatalf("Register() error = %v", err)
+		t.Fatalf("expected register to succeed in debug mode, got %v", err)
 	}
-	if resp.User.ID != 12 {
-		t.Fatalf("expected created user to be returned")
+	if deletedUserID != 0 {
+		t.Fatalf("did not expect created user to be cleaned up, got %d", deletedUserID)
 	}
-	if resp.EmailVerification != nil {
-		t.Fatalf("did not expect debug email verification payload when setup fails")
+	if resp.EmailVerification == nil || resp.EmailVerification.Token == "" {
+		t.Fatalf("expected debug verification payload when SMTP delivery fails")
 	}
 }
 
@@ -616,6 +710,9 @@ func TestRequestEmailVerificationSuccess(t *testing.T) {
 	if resp.Token == "" {
 		t.Fatalf("expected verify token")
 	}
+	if len(resp.Token) < 32 {
+		t.Fatalf("expected opaque verification token, got %q", resp.Token)
+	}
 	if savedHash != hashToken(resp.Token) {
 		t.Fatalf("stored hash mismatch")
 	}
@@ -640,7 +737,7 @@ func TestRequestEmailVerificationSucceedsWhenEmailSendFails(t *testing.T) {
 		sendFn: func(_ context.Context, _, _, _ string) error {
 			return errors.New("smtp down")
 		},
-	}, "", false)
+	}, "", "", false)
 
 	resp, err := svc.RequestEmailVerification(context.Background(), dto.EmailRequest{Email: "user@example.com"})
 	if err != nil {
@@ -654,7 +751,7 @@ func TestRequestEmailVerificationSucceedsWhenEmailSendFails(t *testing.T) {
 	}
 }
 
-func TestSendEmailVerificationIncludesTokenWhenFrontendLinkIsConfigured(t *testing.T) {
+func TestSendEmailVerificationUsesFrontendVerificationLink(t *testing.T) {
 	t.Parallel()
 
 	var sentBody string
@@ -670,17 +767,47 @@ func TestSendEmailVerificationIncludesTokenWhenFrontendLinkIsConfigured(t *testi
 			sentBody = body
 			return nil
 		},
-	}, "http://localhost:5173", false)
+	}, "http://localhost:5173", "", false)
 
 	expiresAt := time.Date(2026, 3, 26, 10, 0, 0, 0, time.UTC)
 	if err := svc.sendEmailVerification(context.Background(), "user@example.com", "verify-code-123", expiresAt); err != nil {
 		t.Fatalf("sendEmailVerification() error = %v", err)
 	}
-	if !strings.Contains(sentBody, "verify-code-123") {
-		t.Fatalf("expected verification code in email body")
-	}
-	if !strings.Contains(sentBody, "http://localhost:5173/verify-email?token=verify-code-123") {
+	if !strings.Contains(sentBody, "http://localhost:5173/auth/verify-email?token=verify-code-123&email=user%40example.com") {
 		t.Fatalf("expected verification link in email body")
+	}
+	if strings.Contains(sentBody, "Use this verification code") || strings.Contains(sentBody, "Use this token to verify your email") {
+		t.Fatalf("did not expect a standalone verification code in email body")
+	}
+}
+
+func TestSendEmailVerificationFallsBackToBackendVerificationLinkWhenFrontendLinkMissing(t *testing.T) {
+	t.Parallel()
+
+	var sentBody string
+	svc := NewAuthService(mockAuthRepo{}, strings.Repeat("g", 32), 15*time.Minute, 24*time.Hour, 10)
+	svc.ConfigureEmailDelivery(stubEmailSender{
+		sendFn: func(_ context.Context, to, subject, body string) error {
+			if to != "user@example.com" {
+				t.Fatalf("unexpected recipient %q", to)
+			}
+			if subject == "" {
+				t.Fatalf("expected subject")
+			}
+			sentBody = body
+			return nil
+		},
+	}, "", "https://api.recipebox.test", false)
+
+	expiresAt := time.Date(2026, 3, 26, 10, 0, 0, 0, time.UTC)
+	if err := svc.sendEmailVerification(context.Background(), "user@example.com", "verify-code-123", expiresAt); err != nil {
+		t.Fatalf("sendEmailVerification() error = %v", err)
+	}
+	if !strings.Contains(sentBody, "https://api.recipebox.test/api/v1/auth/verify-email/confirm?token=verify-code-123") {
+		t.Fatalf("expected backend verification link in email body")
+	}
+	if strings.Contains(sentBody, "Use this verification code") || strings.Contains(sentBody, "Use this token to verify your email") {
+		t.Fatalf("did not expect a standalone verification code in email body")
 	}
 }
 
@@ -703,7 +830,7 @@ func TestRequestPasswordResetSucceedsWhenEmailSendFails(t *testing.T) {
 		sendFn: func(_ context.Context, _, _, _ string) error {
 			return errors.New("smtp down")
 		},
-	}, "", false)
+	}, "", "", false)
 
 	resp, err := svc.RequestPasswordReset(context.Background(), dto.EmailRequest{Email: "user@example.com"})
 	if err != nil {
@@ -766,7 +893,7 @@ func TestSendPasswordResetIncludesTokenWhenFrontendLinkIsConfigured(t *testing.T
 			sentBody = body
 			return nil
 		},
-	}, "http://localhost:5173", false)
+	}, "http://localhost:5173", "", false)
 
 	expiresAt := time.Date(2026, 3, 26, 10, 0, 0, 0, time.UTC)
 	if err := svc.sendPasswordReset(context.Background(), "user@example.com", "reset-code-123", expiresAt); err != nil {

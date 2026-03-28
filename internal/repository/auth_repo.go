@@ -8,6 +8,7 @@ import (
 
 type AuthRepository interface {
 	CreateUser(ctx context.Context, name, email, passwordHash string) (models.User, error)
+	DeleteUnverifiedUserByID(ctx context.Context, id int64) error
 	FindUserByEmail(ctx context.Context, email string) (models.User, error)
 	FindUserByID(ctx context.Context, id int64) (models.User, error)
 	UpdateUserPassword(ctx context.Context, userID int64, passwordHash string) error

@@ -58,7 +58,7 @@ func (h *AuthController) Register(w http.ResponseWriter, r *http.Request) {
 		case models.IsValidationError(err):
 			utils.Error(w, http.StatusBadRequest, err.Error())
 		default:
-			utils.Error(w, http.StatusInternalServerError, "internal server error")
+			writeInternalError(w, r, "internal server error", err)
 		}
 		return
 	}
@@ -92,7 +92,7 @@ func (h *AuthController) Login(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, models.ErrEmailNotVerified):
 			utils.Error(w, http.StatusForbidden, err.Error())
 		default:
-			utils.Error(w, http.StatusInternalServerError, "internal server error")
+			writeInternalError(w, r, "internal server error", err)
 		}
 		return
 	}
@@ -125,7 +125,7 @@ func (h *AuthController) Refresh(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, models.ErrInvalidRefreshToken):
 			utils.Error(w, http.StatusUnauthorized, err.Error())
 		default:
-			utils.Error(w, http.StatusInternalServerError, "internal server error")
+			writeInternalError(w, r, "internal server error", err)
 		}
 		return
 	}
@@ -155,7 +155,7 @@ func (h *AuthController) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.service.Logout(r.Context(), refreshToken, accessTokenFromAuthorizationHeader(r)); err != nil {
-		utils.Error(w, http.StatusInternalServerError, "internal server error")
+		writeInternalError(w, r, "internal server error", err)
 		return
 	}
 
@@ -184,7 +184,7 @@ func (h *AuthController) Me(w http.ResponseWriter, r *http.Request) {
 			utils.Error(w, http.StatusNotFound, "user not found")
 			return
 		}
-		utils.Error(w, http.StatusInternalServerError, "internal server error")
+		writeInternalError(w, r, "internal server error", err)
 		return
 	}
 
@@ -215,7 +215,7 @@ func (h *AuthController) RequestEmailVerification(w http.ResponseWriter, r *http
 		case models.IsValidationError(err):
 			utils.Error(w, http.StatusBadRequest, err.Error())
 		default:
-			utils.Error(w, http.StatusInternalServerError, "internal server error")
+			writeInternalError(w, r, "internal server error", err)
 		}
 		return
 	}
@@ -233,23 +233,52 @@ func (h *AuthController) RequestEmailVerification(w http.ResponseWriter, r *http
 // @Success 200 {object} dto.MessageResponse
 // @Router /api/v1/auth/verify-email/confirm [post]
 func (h *AuthController) VerifyEmail(w http.ResponseWriter, r *http.Request) {
-	var input dto.VerifyEmailRequest
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		utils.Error(w, http.StatusBadRequest, "invalid request body")
+	h.verifyEmail(w, r, false)
+}
+
+// VerifyEmailLink godoc
+// @Summary Confirm email verification from emailed link
+// @Description Verify email using one-time token carried in query string.
+// @Tags Auth
+// @Produce json
+// @Param token query string true "Verify email token"
+// @Success 200 {object} dto.MessageResponse
+// @Router /api/v1/auth/verify-email/confirm [get]
+func (h *AuthController) VerifyEmailLink(w http.ResponseWriter, r *http.Request) {
+	h.verifyEmail(w, r, true)
+}
+
+func (h *AuthController) verifyEmail(w http.ResponseWriter, r *http.Request, fromQuery bool) {
+	token, err := verifyEmailTokenFromRequest(r, fromQuery)
+	if err != nil {
+		utils.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	if err := h.service.VerifyEmail(r.Context(), input.Token); err != nil {
+	if err := h.service.VerifyEmail(r.Context(), token); err != nil {
 		switch {
 		case errors.Is(err, models.ErrInvalidVerifyToken):
 			utils.Error(w, http.StatusBadRequest, err.Error())
 		default:
-			utils.Error(w, http.StatusInternalServerError, "internal server error")
+			writeInternalError(w, r, "internal server error", err)
 		}
 		return
 	}
 
 	utils.JSON(w, http.StatusOK, map[string]any{"message": "email verified"})
+}
+
+func verifyEmailTokenFromRequest(r *http.Request, fromQuery bool) (string, error) {
+	if fromQuery {
+		return strings.TrimSpace(r.URL.Query().Get("token")), nil
+	}
+
+	var input dto.VerifyEmailRequest
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		return "", errors.New("invalid request body")
+	}
+
+	return input.Token, nil
 }
 
 // ForgotPassword godoc
@@ -276,7 +305,7 @@ func (h *AuthController) ForgotPassword(w http.ResponseWriter, r *http.Request) 
 		case models.IsValidationError(err):
 			utils.Error(w, http.StatusBadRequest, err.Error())
 		default:
-			utils.Error(w, http.StatusInternalServerError, "internal server error")
+			writeInternalError(w, r, "internal server error", err)
 		}
 		return
 	}
@@ -305,7 +334,7 @@ func (h *AuthController) ResetPassword(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, models.ErrInvalidResetToken), models.IsValidationError(err):
 			utils.Error(w, http.StatusBadRequest, err.Error())
 		default:
-			utils.Error(w, http.StatusInternalServerError, "internal server error")
+			writeInternalError(w, r, "internal server error", err)
 		}
 		return
 	}

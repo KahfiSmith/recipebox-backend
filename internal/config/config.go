@@ -12,26 +12,27 @@ import (
 )
 
 type Config struct {
-	Env                string
-	HTTPAddr           string
-	DatabaseURL        string
-	RedisAddr          string
-	RedisPassword      string
-	RedisDB            int
-	JWTSecret          string
-	AccessTokenTTL     time.Duration
-	RefreshTokenTTL    time.Duration
-	BcryptCost         int
-	GracefulShutdownMs int
-	FrontendBaseURL    string
-	AuthDebugExposeTokens bool
-	TrustedProxyCIDRs  []*net.IPNet
-	SMTPHost           string
-	SMTPPort           int
-	SMTPUsername       string
-	SMTPPassword       string
-	SMTPFromEmail      string
-	SMTPFromName       string
+	Env                    string
+	HTTPAddr               string
+	DatabaseURL            string
+	RedisAddr              string
+	RedisPassword          string
+	RedisDB                int
+	JWTSecret              string
+	AccessTokenTTL         time.Duration
+	RefreshTokenTTL        time.Duration
+	BcryptCost             int
+	GracefulShutdownMs     int
+	FrontendBaseURL        string
+	APIPublicBaseURL       string
+	AuthDebugExposeTokens  bool
+	TrustedProxyCIDRs      []*net.IPNet
+	SMTPHost               string
+	SMTPPort               int
+	SMTPUsername           string
+	SMTPPassword           string
+	SMTPFromEmail          string
+	SMTPFromName           string
 	AuthRateLimitPerMinute int
 }
 
@@ -39,24 +40,25 @@ func Load() (Config, error) {
 	loadDotEnvIfPresent()
 
 	cfg := Config{
-		Env:                getEnv("APP_ENV", "development"),
-		HTTPAddr:           getEnv("HTTP_ADDR", ":8080"),
-		DatabaseURL:        strings.TrimSpace(os.Getenv("DATABASE_URL")),
-		RedisAddr:          strings.TrimSpace(os.Getenv("REDIS_ADDR")),
-		RedisPassword:      os.Getenv("REDIS_PASSWORD"),
-		RedisDB:            getInt("REDIS_DB", 0),
-		JWTSecret:          strings.TrimSpace(os.Getenv("JWT_SECRET")),
-		AccessTokenTTL:     getDuration("ACCESS_TOKEN_TTL", 15*time.Minute),
-		RefreshTokenTTL:    getDuration("REFRESH_TOKEN_TTL", 7*24*time.Hour),
-		BcryptCost:         getInt("BCRYPT_COST", 12),
-		GracefulShutdownMs: getInt("GRACEFUL_SHUTDOWN_MS", 10000),
-		FrontendBaseURL:    strings.TrimSpace(os.Getenv("FRONTEND_BASE_URL")),
-		SMTPHost:           strings.TrimSpace(os.Getenv("SMTP_HOST")),
-		SMTPPort:           getInt("SMTP_PORT", 587),
-		SMTPUsername:       strings.TrimSpace(os.Getenv("SMTP_USERNAME")),
-		SMTPPassword:       strings.TrimSpace(os.Getenv("SMTP_PASSWORD")),
-		SMTPFromEmail:      strings.TrimSpace(os.Getenv("SMTP_FROM_EMAIL")),
-		SMTPFromName:       strings.TrimSpace(os.Getenv("SMTP_FROM_NAME")),
+		Env:                    getEnv("APP_ENV", "development"),
+		HTTPAddr:               getEnv("HTTP_ADDR", ":8080"),
+		DatabaseURL:            strings.TrimSpace(os.Getenv("DATABASE_URL")),
+		RedisAddr:              strings.TrimSpace(os.Getenv("REDIS_ADDR")),
+		RedisPassword:          os.Getenv("REDIS_PASSWORD"),
+		RedisDB:                getInt("REDIS_DB", 0),
+		JWTSecret:              strings.TrimSpace(os.Getenv("JWT_SECRET")),
+		AccessTokenTTL:         getDuration("ACCESS_TOKEN_TTL", 15*time.Minute),
+		RefreshTokenTTL:        getDuration("REFRESH_TOKEN_TTL", 7*24*time.Hour),
+		BcryptCost:             getInt("BCRYPT_COST", 12),
+		GracefulShutdownMs:     getInt("GRACEFUL_SHUTDOWN_MS", 10000),
+		FrontendBaseURL:        strings.TrimSpace(os.Getenv("FRONTEND_BASE_URL")),
+		APIPublicBaseURL:       strings.TrimRight(strings.TrimSpace(os.Getenv("API_PUBLIC_BASE_URL")), "/"),
+		SMTPHost:               strings.TrimSpace(os.Getenv("SMTP_HOST")),
+		SMTPPort:               getInt("SMTP_PORT", 587),
+		SMTPUsername:           strings.TrimSpace(os.Getenv("SMTP_USERNAME")),
+		SMTPPassword:           strings.TrimSpace(os.Getenv("SMTP_PASSWORD")),
+		SMTPFromEmail:          strings.TrimSpace(os.Getenv("SMTP_FROM_EMAIL")),
+		SMTPFromName:           strings.TrimSpace(os.Getenv("SMTP_FROM_NAME")),
 		AuthRateLimitPerMinute: getInt("AUTH_RATE_LIMIT_PER_MINUTE", 30),
 	}
 	cfg.AuthDebugExposeTokens = getBool("AUTH_DEBUG_EXPOSE_TOKENS", cfg.Env != "production")

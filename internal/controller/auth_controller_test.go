@@ -2,6 +2,8 @@ package controller
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"net"
 	"net/http"
@@ -21,6 +23,7 @@ import (
 
 type mockAuthRepo struct {
 	createUserFn                    func(ctx context.Context, name, email, passwordHash string) (entity.User, error)
+	deleteUnverifiedUserByIDFn      func(ctx context.Context, id int64) error
 	findUserByEmailFn               func(ctx context.Context, email string) (entity.User, error)
 	findUserByIDFn                  func(ctx context.Context, id int64) (entity.User, error)
 	saveRefreshTokenFn              func(ctx context.Context, userID int64, tokenHash string, expiresAt time.Time, userAgent, ip string) error
@@ -29,6 +32,7 @@ type mockAuthRepo struct {
 	revokeRefreshTokenFn            func(ctx context.Context, tokenHash string) error
 	findRefreshTokenByHashFn        func(ctx context.Context, tokenHash string) (entity.RefreshToken, error)
 	revokeAllUserRefreshTokensFn    func(ctx context.Context, userID int64) error
+	consumeEmailVerificationTokenFn func(ctx context.Context, tokenHash string, now time.Time) error
 	consumePasswordResetAndUpdateFn func(ctx context.Context, tokenHash, newPasswordHash string, now time.Time) error
 }
 
@@ -39,6 +43,13 @@ func (m mockAuthRepo) CreateUser(ctx context.Context, name, email, passwordHash 
 		return entity.User{}, nil
 	}
 	return m.createUserFn(ctx, name, email, passwordHash)
+}
+
+func (m mockAuthRepo) DeleteUnverifiedUserByID(ctx context.Context, id int64) error {
+	if m.deleteUnverifiedUserByIDFn == nil {
+		return nil
+	}
+	return m.deleteUnverifiedUserByIDFn(ctx, id)
 }
 
 func (m mockAuthRepo) FindUserByEmail(ctx context.Context, email string) (entity.User, error) {
@@ -105,8 +116,52 @@ func (m mockAuthRepo) SaveEmailVerificationToken(context.Context, int64, string,
 	return nil
 }
 
-func (m mockAuthRepo) ConsumeEmailVerificationToken(context.Context, string, time.Time) error {
-	return nil
+func (m mockAuthRepo) ConsumeEmailVerificationToken(ctx context.Context, tokenHash string, now time.Time) error {
+	if m.consumeEmailVerificationTokenFn == nil {
+		return nil
+	}
+	return m.consumeEmailVerificationTokenFn(ctx, tokenHash, now)
+}
+
+func hashTestToken(token string) string {
+	sum := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(sum[:])
+}
+
+func TestVerifyEmailLinkAcceptsTokenFromQuery(t *testing.T) {
+	t.Parallel()
+
+	repo := mockAuthRepo{
+		consumeEmailVerificationTokenFn: func(_ context.Context, tokenHash string, now time.Time) error {
+			if tokenHash != hashTestToken("12345678") {
+				t.Fatalf("unexpected token hash %q", tokenHash)
+			}
+			if now.IsZero() {
+				t.Fatalf("expected verification timestamp")
+			}
+			return nil
+		},
+	}
+
+	authService := service.NewAuthService(repo, strings.Repeat("v", 32), 15*time.Minute, 24*time.Hour, bcrypt.MinCost)
+	controller := NewAuthController(authService, false, 24*time.Hour, nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/auth/verify-email/confirm?token=12345678", nil)
+	rec := httptest.NewRecorder()
+
+	controller.VerifyEmailLink(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+
+	var payload map[string]string
+	if err := json.NewDecoder(rec.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if payload["message"] != "email verified" {
+		t.Fatalf("unexpected message %q", payload["message"])
+	}
 }
 
 func (m mockAuthRepo) SavePasswordResetToken(context.Context, int64, string, time.Time) error {
@@ -272,7 +327,7 @@ func TestRefreshUsesCookieAndRotatesRefreshToken(t *testing.T) {
 			if !newExpiresAt.After(now) {
 				t.Fatalf("expected expiry after rotation time")
 			}
-			if newExpiresAt.Before(now.Add(23 * time.Hour)) || newExpiresAt.After(now.Add(24*time.Hour+time.Minute)) {
+			if newExpiresAt.Before(now.Add(23*time.Hour)) || newExpiresAt.After(now.Add(24*time.Hour+time.Minute)) {
 				t.Fatalf("unexpected new expiry %v", newExpiresAt)
 			}
 			if userAgent != "refresh-agent" {
@@ -463,13 +518,8 @@ func TestRegisterIncludesDebugVerificationTokenInResponse(t *testing.T) {
 	if payload.Data.EmailVerification.Token == "" {
 		t.Fatalf("expected debug verification token in register response")
 	}
-	if len(payload.Data.EmailVerification.Token) != 8 {
-		t.Fatalf("expected 8-digit verification token, got %q", payload.Data.EmailVerification.Token)
-	}
-	for _, ch := range payload.Data.EmailVerification.Token {
-		if ch < '0' || ch > '9' {
-			t.Fatalf("expected numeric verification token, got %q", payload.Data.EmailVerification.Token)
-		}
+	if len(payload.Data.EmailVerification.Token) < 32 {
+		t.Fatalf("expected opaque verification token, got %q", payload.Data.EmailVerification.Token)
 	}
 }
 
@@ -511,13 +561,8 @@ func TestRequestEmailVerificationIncludesDebugTokenInResponse(t *testing.T) {
 	if payload.Data.Token == "" {
 		t.Fatalf("expected debug token in response body")
 	}
-	if len(payload.Data.Token) != 8 {
-		t.Fatalf("expected 8-digit verification token, got %q", payload.Data.Token)
-	}
-	for _, ch := range payload.Data.Token {
-		if ch < '0' || ch > '9' {
-			t.Fatalf("expected numeric verification token, got %q", payload.Data.Token)
-		}
+	if len(payload.Data.Token) < 32 {
+		t.Fatalf("expected opaque verification token, got %q", payload.Data.Token)
 	}
 }
 

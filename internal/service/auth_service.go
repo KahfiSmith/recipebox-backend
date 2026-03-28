@@ -35,6 +35,7 @@ type AuthService struct {
 	now              func() time.Time
 	emailSender      EmailSender
 	frontendBaseURL  string
+	apiPublicBaseURL string
 	exposeTokens     bool
 }
 
@@ -70,9 +71,10 @@ func (s *AuthService) ConfigureAuthStateStore(stateRepo AuthStateStore) {
 	s.stateRepo = stateRepo
 }
 
-func (s *AuthService) ConfigureEmailDelivery(sender EmailSender, frontendBaseURL string, exposeTokens bool) {
+func (s *AuthService) ConfigureEmailDelivery(sender EmailSender, frontendBaseURL, apiPublicBaseURL string, exposeTokens bool) {
 	s.emailSender = sender
 	s.frontendBaseURL = strings.TrimRight(strings.TrimSpace(frontendBaseURL), "/")
+	s.apiPublicBaseURL = strings.TrimRight(strings.TrimSpace(apiPublicBaseURL), "/")
 	s.exposeTokens = exposeTokens
 }
 
@@ -104,8 +106,11 @@ func (s *AuthService) Register(ctx context.Context, input dto.RegisterRequest) (
 	}
 
 	var verificationResp *dto.OneTimeTokenResponse
-	if issuedResp, err := s.issueEmailVerificationToken(ctx, user.ID, user.Email); err != nil {
-		log.Printf("auth: failed to prepare email verification for newly registered user %s: %v", user.Email, err)
+	if issuedResp, err := s.issueEmailVerificationToken(ctx, user.ID, user.Email, true); err != nil {
+		if cleanupErr := s.repo.DeleteUnverifiedUserByID(ctx, user.ID); cleanupErr != nil {
+			return dto.RegisterResponse{}, fmt.Errorf("send verification email: %v; cleanup unverified user: %w", err, cleanupErr)
+		}
+		return dto.RegisterResponse{}, fmt.Errorf("send verification email: %w", err)
 	} else if issuedResp.Token != "" {
 		verificationResp = &issuedResp
 	}
@@ -279,7 +284,7 @@ func (s *AuthService) RequestEmailVerification(ctx context.Context, input dto.Em
 		return dto.OneTimeTokenResponse{}, nil
 	}
 
-	return s.issueEmailVerificationToken(ctx, user.ID, user.Email)
+	return s.issueEmailVerificationToken(ctx, user.ID, user.Email, false)
 }
 
 func (s *AuthService) VerifyEmail(ctx context.Context, token string) error {
@@ -573,8 +578,8 @@ func (s *AuthService) detectRefreshTokenReuse(ctx context.Context, tokenHash str
 	}
 }
 
-func (s *AuthService) issueEmailVerificationToken(ctx context.Context, userID int64, email string) (dto.OneTimeTokenResponse, error) {
-	rawToken, err := generateNumericCode(8)
+func (s *AuthService) issueEmailVerificationToken(ctx context.Context, userID int64, email string, requireEmailDelivery bool) (dto.OneTimeTokenResponse, error) {
+	rawToken, err := generateTokenString(32)
 	if err != nil {
 		return dto.OneTimeTokenResponse{}, fmt.Errorf("generate verify token: %w", err)
 	}
@@ -588,7 +593,16 @@ func (s *AuthService) issueEmailVerificationToken(ctx context.Context, userID in
 		return dto.OneTimeTokenResponse{}, err
 	}
 
-	s.trySendEmailVerification(ctx, email, rawToken, expiresAt)
+	if requireEmailDelivery {
+		if err := s.sendEmailVerification(ctx, email, rawToken, expiresAt); err != nil {
+			if !s.exposeTokens {
+				return dto.OneTimeTokenResponse{}, err
+			}
+			log.Printf("auth: failed to send email verification to %s: %v", email, err)
+		}
+	} else {
+		s.trySendEmailVerification(ctx, email, rawToken, expiresAt)
+	}
 	if !s.exposeTokens {
 		rawToken = ""
 	}
@@ -599,18 +613,10 @@ func (s *AuthService) issueEmailVerificationToken(ctx context.Context, userID in
 func (s *AuthService) sendEmailVerification(ctx context.Context, to, token string, expiresAt time.Time) error {
 	subject := "Verify your RecipeBox account"
 	body := fmt.Sprintf(
-		"Use this token to verify your email: %s\nExpires at: %s",
-		token,
+		"Open this link to verify your RecipeBox account:\n%s\n\nThis link expires at %s.",
+		s.buildVerificationLink(to, token),
 		expiresAt.UTC().Format(time.RFC3339),
 	)
-	if link := s.buildActionLink("/verify-email", token); link != "" {
-		body = fmt.Sprintf(
-			"Use this verification code: %s\n\nOr verify your RecipeBox account by opening this link:\n%s\n\nThis code and link expire at %s.",
-			token,
-			link,
-			expiresAt.UTC().Format(time.RFC3339),
-		)
-	}
 	return s.sendEmail(ctx, to, subject, body)
 }
 
@@ -659,4 +665,14 @@ func (s *AuthService) buildActionLink(path, token string) string {
 		return ""
 	}
 	return s.frontendBaseURL + path + "?token=" + url.QueryEscape(token)
+}
+
+func (s *AuthService) buildVerificationLink(email, token string) string {
+	if s.frontendBaseURL != "" {
+		return s.frontendBaseURL + "/auth/verify-email?token=" + url.QueryEscape(token) + "&email=" + url.QueryEscape(email)
+	}
+	if s.apiPublicBaseURL != "" {
+		return s.apiPublicBaseURL + "/api/v1/auth/verify-email/confirm?token=" + url.QueryEscape(token)
+	}
+	return ""
 }
