@@ -36,7 +36,7 @@
     },
     {
       "key": "verifyToken",
-      "value": "12345678"
+      "value": "verify-token-sample-r4nd0mOpaqueString"
     },
     {
       "key": "resetToken",
@@ -90,6 +90,26 @@
       "item": [
         {
           "name": "Register user",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "  const data = pm.response.json().data;",
+                  "  const token = data && data.emailVerification && data.emailVerification.token;",
+                  "  if (token) {",
+                  "    pm.collectionVariables.set('verifyToken', token);",
+                  "    if (pm.environment) {",
+                  "      pm.environment.set('verifyToken', token);",
+                  "    }",
+                  "  }",
+                  "} catch (e) {}"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -119,7 +139,7 @@
                 "register"
               ]
             },
-            "description": "Register a new user account. Successful registration now also triggers the email verification flow for the submitted email address."
+            "description": "Register a new user account. Successful registration now also triggers the email verification flow for the submitted email address. When debug token exposure is enabled, Postman stores `data.emailVerification.token` into the `verifyToken` variable automatically."
           }
         },
         {
@@ -301,6 +321,26 @@
         },
         {
           "name": "Request email verification token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "  const data = pm.response.json().data;",
+                  "  const token = data && data.token;",
+                  "  if (token) {",
+                  "    pm.collectionVariables.set('verifyToken', token);",
+                  "    if (pm.environment) {",
+                  "      pm.environment.set('verifyToken', token);",
+                  "    }",
+                  "  }",
+                  "} catch (e) {}"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -331,7 +371,7 @@
                 "request"
               ]
             },
-            "description": "Request email verification flow."
+            "description": "Request email verification flow. When debug token exposure is enabled, Postman stores `data.token` into the `verifyToken` variable automatically."
           }
         },
         {
@@ -366,7 +406,7 @@
                 "confirm"
               ]
             },
-            "description": "Verify email using one-time token."
+            "description": "Verify email using the opaque token from the magic link or the `verifyToken` Postman variable."
           }
         },
         {
